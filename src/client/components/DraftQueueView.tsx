@@ -1,45 +1,45 @@
-import { useCallback, useEffect, useState } from 'react';
-import { AnimatePresence } from 'framer-motion';
-import { useDraftReview, type DraftReview } from '@/hooks/useDraftReview';
-import { DraftProgress } from '@/components/DraftProgress';
-import { DraftReviewCard } from '@/components/DraftReviewCard';
-import { DraftActions } from '@/components/DraftActions';
-import { EditDraftDialog } from '@/components/EditDraftDialog';
-import { EmptyState } from '@/components/EmptyState';
+import { useCallback, useEffect, useState } from 'react'
+import { AnimatePresence } from 'framer-motion'
+import { useDraftReview, type DraftReview } from '@/hooks/useDraftReview'
+import { DraftProgress } from '@/components/DraftProgress'
+import { DraftReviewCard } from '@/components/DraftReviewCard'
+import { DraftActions } from '@/components/DraftActions'
+import { EditDraftDialog } from '@/components/EditDraftDialog'
+import { EmptyState } from '@/components/EmptyState'
 
 interface Props {
-  review: DraftReview;
+  review: DraftReview
 }
 
 export function DraftQueueView({ review }: Props) {
-  const [editOpen, setEditOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false)
 
-  const handleApprove = useCallback(() => void review.approve(), [review]);
-  const handleSkip = useCallback(() => void review.skip(), [review]);
-  const handleEdit = useCallback(() => setEditOpen(true), []);
+  const handleApprove = useCallback(() => void review.approve(), [review])
+  const handleSkip = useCallback(() => void review.skip(), [review])
+  const handleEdit = useCallback(() => setEditOpen(true), [])
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
-      if (editOpen) return;
-      const tag = (e.target as HTMLElement | null)?.tagName;
-      if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+      if (editOpen) return
+      const tag = (e.target as HTMLElement | null)?.tagName
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return
       if (e.key === 'ArrowRight') {
-        e.preventDefault();
-        handleApprove();
+        e.preventDefault()
+        handleApprove()
       } else if (e.key === 'ArrowLeft') {
-        e.preventDefault();
-        handleSkip();
+        e.preventDefault()
+        handleSkip()
       } else if (e.key === 'e' || e.key === 'E') {
-        e.preventDefault();
-        handleEdit();
+        e.preventDefault()
+        handleEdit()
       }
     }
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [editOpen, handleApprove, handleSkip, handleEdit]);
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [editOpen, handleApprove, handleSkip, handleEdit])
 
   if (review.loading) {
-    return <CenteredMessage>Loading drafts…</CenteredMessage>;
+    return <CenteredMessage>Loading drafts…</CenteredMessage>
   }
 
   if (review.error) {
@@ -48,15 +48,18 @@ export function DraftQueueView({ review }: Props) {
         <div className="space-y-3">
           <h2 className="text-lg font-semibold text-destructive">Error</h2>
           <p className="text-sm text-muted-foreground">{review.error}</p>
-          <button className="text-sm underline text-primary" onClick={() => void review.reload()}>
+          <button
+            className="text-sm underline text-primary"
+            onClick={() => void review.reload()}
+          >
             Retry
           </button>
         </div>
       </CenteredMessage>
-    );
+    )
   }
 
-  const isDone = !review.current;
+  const isDone = !review.current
 
   if (isDone) {
     return (
@@ -66,7 +69,7 @@ export function DraftQueueView({ review }: Props) {
         total={review.total}
         onReload={() => void review.reload()}
       />
-    );
+    )
   }
 
   return (
@@ -86,7 +89,11 @@ export function DraftQueueView({ review }: Props) {
             onSkip={handleSkip}
           />
         </AnimatePresence>
-        <DraftActions onApprove={handleApprove} onSkip={handleSkip} onEdit={handleEdit} />
+        <DraftActions
+          onApprove={handleApprove}
+          onSkip={handleSkip}
+          onEdit={handleEdit}
+        />
       </div>
       <EditDraftDialog
         draft={review.current}
@@ -95,11 +102,11 @@ export function DraftQueueView({ review }: Props) {
         onSave={review.saveEdits}
       />
     </>
-  );
+  )
 }
 
 export function useDraftQueue(): DraftReview {
-  return useDraftReview();
+  return useDraftReview()
 }
 
 function CenteredMessage({ children }: { children: React.ReactNode }) {
@@ -107,5 +114,5 @@ function CenteredMessage({ children }: { children: React.ReactNode }) {
     <div className="min-h-[60vh] flex items-center justify-center px-4 text-center text-muted-foreground">
       {children}
     </div>
-  );
+  )
 }

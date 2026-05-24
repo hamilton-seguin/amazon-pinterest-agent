@@ -1,11 +1,11 @@
-import { Check, Pencil, X } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Check, Pencil, X } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 
 interface Props {
-  onApprove(): void;
-  onSkip(): void;
-  onEdit(): void;
-  disabled?: boolean;
+  onApprove(): void
+  onSkip(): void
+  onEdit(): void
+  disabled?: boolean
 }
 
 export function DraftActions({ onApprove, onSkip, onEdit, disabled }: Props) {
@@ -45,5 +45,5 @@ export function DraftActions({ onApprove, onSkip, onEdit, disabled }: Props) {
         <Check className="h-6 w-6" />
       </Button>
     </div>
-  );
+  )
 }

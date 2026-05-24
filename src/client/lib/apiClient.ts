@@ -1,4 +1,4 @@
-import type { PinDraft, PinStatus } from '../../types.js';
+import type { PinDraft, PinStatus } from '../../types.js'
 
 async function http<T>(
   method: string,
@@ -9,32 +9,39 @@ async function http<T>(
     method,
     headers: body ? { 'Content-Type': 'application/json' } : undefined,
     body: body ? JSON.stringify(body) : undefined,
-  });
+  })
   if (!res.ok) {
-    let msg = `${method} ${path} → ${res.status}`;
+    let msg = `${method} ${path} → ${res.status}`
     try {
-      const data = await res.json();
-      if (data && typeof data === 'object' && 'error' in data) msg = String(data.error);
+      const data = await res.json()
+      if (data && typeof data === 'object' && 'error' in data)
+        msg = String(data.error)
     } catch {
       // ignore
     }
-    throw new Error(msg);
+    throw new Error(msg)
   }
-  return (await res.json()) as T;
+  return (await res.json()) as T
 }
 
 export const draftsApi = {
   list(status?: PinStatus): Promise<PinDraft[]> {
-    const qs = status ? `?status=${encodeURIComponent(status)}` : '';
-    return http<PinDraft[]>('GET', `/api/drafts${qs}`);
+    const qs = status ? `?status=${encodeURIComponent(status)}` : ''
+    return http<PinDraft[]>('GET', `/api/drafts${qs}`)
   },
-  update(asin: string, updates: { pinTitle?: string; pinDescription?: string }): Promise<PinDraft> {
-    return http<PinDraft>('PATCH', `/api/drafts/${asin}`, updates);
+  update(
+    asin: string,
+    updates: { pinTitle?: string; pinDescription?: string },
+  ): Promise<PinDraft> {
+    return http<PinDraft>('PATCH', `/api/drafts/${asin}`, updates)
   },
-  approve(asin: string, updates?: { pinTitle?: string; pinDescription?: string }): Promise<PinDraft> {
-    return http<PinDraft>('POST', `/api/drafts/${asin}/approve`, updates);
+  approve(
+    asin: string,
+    updates?: { pinTitle?: string; pinDescription?: string },
+  ): Promise<PinDraft> {
+    return http<PinDraft>('POST', `/api/drafts/${asin}/approve`, updates)
   },
   skip(asin: string): Promise<PinDraft> {
-    return http<PinDraft>('POST', `/api/drafts/${asin}/skip`);
+    return http<PinDraft>('POST', `/api/drafts/${asin}/skip`)
   },
-};
+}

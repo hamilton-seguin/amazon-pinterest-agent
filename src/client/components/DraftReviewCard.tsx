@@ -1,29 +1,34 @@
-import { useState } from 'react';
-import { motion, useMotionValue, useTransform, type PanInfo } from 'framer-motion';
-import { ExternalLink } from 'lucide-react';
-import type { PinDraft } from '../../types.js';
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { cn } from '@/lib/utils';
+import { useState } from 'react'
+import {
+  motion,
+  useMotionValue,
+  useTransform,
+  type PanInfo,
+} from 'framer-motion'
+import { ExternalLink } from 'lucide-react'
+import type { PinDraft } from '../../types.js'
+import { Card, CardContent } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { cn } from '@/lib/utils'
 
-const SWIPE_THRESHOLD = 140;
+const SWIPE_THRESHOLD = 140
 
 interface Props {
-  draft: PinDraft;
-  onApprove(): void;
-  onSkip(): void;
+  draft: PinDraft
+  onApprove(): void
+  onSkip(): void
 }
 
 export function DraftReviewCard({ draft, onApprove, onSkip }: Props) {
-  const x = useMotionValue(0);
-  const rotate = useTransform(x, [-300, 0, 300], [-15, 0, 15]);
-  const approveOpacity = useTransform(x, [40, 160], [0, 1]);
-  const skipOpacity = useTransform(x, [-160, -40], [1, 0]);
-  const [imgError, setImgError] = useState(false);
+  const x = useMotionValue(0)
+  const rotate = useTransform(x, [-300, 0, 300], [-15, 0, 15])
+  const approveOpacity = useTransform(x, [40, 160], [0, 1])
+  const skipOpacity = useTransform(x, [-160, -40], [1, 0])
+  const [imgError, setImgError] = useState(false)
 
   function handleDragEnd(_e: unknown, info: PanInfo) {
-    if (info.offset.x > SWIPE_THRESHOLD) onApprove();
-    else if (info.offset.x < -SWIPE_THRESHOLD) onSkip();
+    if (info.offset.x > SWIPE_THRESHOLD) onApprove()
+    else if (info.offset.x < -SWIPE_THRESHOLD) onSkip()
   }
 
   return (
@@ -65,10 +70,15 @@ export function DraftReviewCard({ draft, onApprove, onSkip }: Props) {
                 draggable={false}
               />
             ) : (
-              <div className="text-muted-foreground text-sm">Image unavailable</div>
+              <div className="text-muted-foreground text-sm">
+                Image unavailable
+              </div>
             )}
             <div className="absolute top-3 left-3 flex gap-2">
-              <Badge variant="secondary" className="bg-black/60 text-white border-transparent">
+              <Badge
+                variant="secondary"
+                className="bg-black/60 text-white border-transparent"
+              >
                 {draft.category}
               </Badge>
               <Badge
@@ -84,7 +94,9 @@ export function DraftReviewCard({ draft, onApprove, onSkip }: Props) {
           </div>
 
           <CardContent className="space-y-3">
-            <h3 className="text-lg font-semibold leading-snug line-clamp-2">{draft.pinTitle}</h3>
+            <h3 className="text-lg font-semibold leading-snug line-clamp-2">
+              {draft.pinTitle}
+            </h3>
             <p className="text-sm text-muted-foreground leading-relaxed max-h-44 overflow-y-auto">
               {draft.pinDescription}
             </p>
@@ -103,11 +115,11 @@ export function DraftReviewCard({ draft, onApprove, onSkip }: Props) {
         </Card>
       </motion.div>
     </div>
-  );
+  )
 }
 
 function scoreColor(score: number): string {
-  if (score >= 70) return 'bg-success/80';
-  if (score >= 40) return 'bg-primary/80';
-  return 'bg-muted-foreground/70';
+  if (score >= 70) return 'bg-success/80'
+  if (score >= 40) return 'bg-primary/80'
+  return 'bg-muted-foreground/70'
 }

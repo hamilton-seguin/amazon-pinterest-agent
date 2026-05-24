@@ -1,11 +1,11 @@
-import { loadConfig, type AppConfig } from './config.js';
-import { generateCandidates } from './cli/generate.js';
-import { collectAmazon } from './cli/collectAmazon.js';
-import { runReviewQueue } from './services/reviewQueue.js';
-import { publishApproved } from './services/pinPublisher.js';
-import { stores } from './storage/jsonStore.js';
-import { logger, setLogLevel } from './utils/logger.js';
-import { maskSecret } from './utils/maskSecret.js';
+import { loadConfig, type AppConfig } from './config.js'
+import { generateCandidates } from './cli/generate.js'
+import { collectAmazon } from './cli/collectAmazon.js'
+import { runReviewQueue } from './services/reviewQueue.js'
+import { publishApproved } from './services/pinPublisher.js'
+import { stores } from './storage/jsonStore.js'
+import { logger, setLogLevel } from './utils/logger.js'
+import { maskSecret } from './utils/maskSecret.js'
 
 type Command =
   | 'generate:candidates'
@@ -14,12 +14,12 @@ type Command =
   | 'publish:approved'
   | 'clear:candidates'
   | 'daily'
-  | 'help';
+  | 'help'
 
-type DailyMode = 'api' | 'mock' | 'manual';
+type DailyMode = 'api' | 'mock' | 'manual'
 
 function parseCommand(argv: string[]): Command {
-  const cmd = argv[2];
+  const cmd = argv[2]
   switch (cmd) {
     case 'generate:candidates':
     case 'collect:amazon':
@@ -27,14 +27,14 @@ function parseCommand(argv: string[]): Command {
     case 'publish:approved':
     case 'clear:candidates':
     case 'daily':
-      return cmd;
+      return cmd
     case undefined:
     case 'help':
     case '-h':
     case '--help':
-      return 'help';
+      return 'help'
     default:
-      throw new Error(`Unknown command: ${cmd}`);
+      throw new Error(`Unknown command: ${cmd}`)
   }
 }
 
@@ -45,20 +45,20 @@ function parseCommand(argv: string[]): Command {
  *   npm run daily --manual       (npm exports npm_config_manual env var)
  */
 function hasFlag(name: string): boolean {
-  if (process.argv.includes(`--${name}`)) return true;
-  const envVal = process.env[`npm_config_${name}`];
-  return envVal === 'true' || envVal === '';
+  if (process.argv.includes(`--${name}`)) return true
+  const envVal = process.env[`npm_config_${name}`]
+  return envVal === 'true' || envVal === ''
 }
 
 function resolveDailyMode(): DailyMode {
-  const manual = hasFlag('manual');
-  const mock = hasFlag('mock');
+  const manual = hasFlag('manual')
+  const mock = hasFlag('mock')
   if (manual && mock) {
-    throw new Error('Cannot combine --manual and --mock flags. Pick one.');
+    throw new Error('Cannot combine --manual and --mock flags. Pick one.')
   }
-  if (manual) return 'manual';
-  if (mock) return 'mock';
-  return 'api';
+  if (manual) return 'manual'
+  if (mock) return 'mock'
+  return 'api'
 }
 
 function printHelp(): void {
@@ -74,49 +74,49 @@ Commands:
                           --mock     use mock fixtures (no keys needed)
                           --manual   use Playwright collector (no PA-API keys needed)
                           (default)  use Amazon PA-API (requires keys)
-  help                  Show this.`);
+  help                  Show this.`)
 }
 
 async function runDaily(cfg: AppConfig): Promise<void> {
-  const mode = resolveDailyMode();
-  logger.info('Daily pipeline mode', { mode });
+  const mode = resolveDailyMode()
+  logger.info('Daily pipeline mode', { mode })
 
   switch (mode) {
     case 'manual':
-      cfg.AMAZON_PROVIDER = 'playwright';
-      await collectAmazon(cfg);
-      await generateCandidates(cfg);
-      break;
+      cfg.AMAZON_PROVIDER = 'playwright'
+      await collectAmazon(cfg)
+      await generateCandidates(cfg)
+      break
     case 'mock':
-      cfg.AMAZON_PROVIDER = 'mock';
-      await generateCandidates(cfg);
-      break;
+      cfg.AMAZON_PROVIDER = 'mock'
+      await generateCandidates(cfg)
+      break
     case 'api':
-      cfg.AMAZON_PROVIDER = 'paapi';
-      await generateCandidates(cfg);
-      break;
+      cfg.AMAZON_PROVIDER = 'paapi'
+      await generateCandidates(cfg)
+      break
   }
 
-  const summary = await runReviewQueue();
+  const summary = await runReviewQueue()
   logger.info('Review complete', {
     approved: summary.approved.length,
     skipped: summary.skipped.length,
     remaining: summary.remaining.length,
-  });
+  })
 
-  const result = await publishApproved(cfg);
-  logger.info('Publish summary', { ...result });
+  const result = await publishApproved(cfg)
+  logger.info('Publish summary', { ...result })
 }
 
 async function main(): Promise<void> {
-  const command = parseCommand(process.argv);
+  const command = parseCommand(process.argv)
   if (command === 'help') {
-    printHelp();
-    return;
+    printHelp()
+    return
   }
 
-  const cfg = loadConfig();
-  setLogLevel(cfg.LOG_LEVEL);
+  const cfg = loadConfig()
+  setLogLevel(cfg.LOG_LEVEL)
 
   logger.info('Starting amazon-pinterest-agent', {
     command,
@@ -125,44 +125,44 @@ async function main(): Promise<void> {
     copyProvider: cfg.COPY_PROVIDER,
     associateTag: maskSecret(cfg.AMAZON_ASSOCIATE_TAG),
     pinterestToken: cfg.PINTEREST_ACCESS_TOKEN ?? '',
-  });
+  })
 
   if (command === 'daily') {
-    await runDaily(cfg);
-    return;
+    await runDaily(cfg)
+    return
   }
   if (command === 'collect:amazon') {
-    await collectAmazon(cfg);
-    return;
+    await collectAmazon(cfg)
+    return
   }
   if (command === 'generate:candidates') {
-    await generateCandidates(cfg);
-    return;
+    await generateCandidates(cfg)
+    return
   }
   if (command === 'review:candidates') {
-    const summary = await runReviewQueue();
+    const summary = await runReviewQueue()
     logger.info('Review complete', {
       approved: summary.approved.length,
       skipped: summary.skipped.length,
       remaining: summary.remaining.length,
-    });
-    return;
+    })
+    return
   }
   if (command === 'publish:approved') {
-    const result = await publishApproved(cfg);
-    logger.info('Publish summary', { ...result });
-    return;
+    const result = await publishApproved(cfg)
+    logger.info('Publish summary', { ...result })
+    return
   }
   if (command === 'clear:candidates') {
-    const before = await stores.candidates.read();
-    await stores.candidates.writeAll([]);
-    logger.info('Cleared data/candidates.json', { removed: before.length });
-    return;
+    const before = await stores.candidates.read()
+    await stores.candidates.writeAll([])
+    logger.info('Cleared data/candidates.json', { removed: before.length })
+    return
   }
 }
 
 main().catch((err) => {
-  const msg = err instanceof Error ? err.message : String(err);
-  logger.error('Fatal error', { message: msg });
-  process.exitCode = 1;
-});
+  const msg = err instanceof Error ? err.message : String(err)
+  logger.error('Fatal error', { message: msg })
+  process.exitCode = 1
+})

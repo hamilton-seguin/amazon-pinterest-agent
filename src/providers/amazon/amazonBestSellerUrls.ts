@@ -1,12 +1,12 @@
-import { existsSync } from 'node:fs';
-import { readFile } from 'node:fs/promises';
-import { resolve } from 'node:path';
-import type { Category } from '../../types.js';
+import { existsSync } from 'node:fs'
+import { readFile } from 'node:fs/promises'
+import { resolve } from 'node:path'
+import type { Category } from '../../types.js'
 
 export interface BestSellerSource {
-  category: Category;
-  url: string;
-  label?: string;
+  category: Category
+  url: string
+  label?: string
 }
 
 /**
@@ -37,16 +37,20 @@ export const DEFAULT_BESTSELLER_SOURCES: ReadonlyArray<BestSellerSource> = [
     url: 'https://www.amazon.fr/gp/bestsellers/baby',
     label: 'Bébé et Puériculture',
   },
-];
+]
 
-const OVERRIDE_PATH = resolve(process.cwd(), 'data/bestseller-urls.json');
+const OVERRIDE_PATH = resolve(process.cwd(), 'data/bestseller-urls.json')
 
-export async function loadBestSellerSources(): Promise<readonly BestSellerSource[]> {
-  if (!existsSync(OVERRIDE_PATH)) return DEFAULT_BESTSELLER_SOURCES;
-  const raw = await readFile(OVERRIDE_PATH, 'utf8');
-  const parsed = JSON.parse(raw) as unknown;
+export async function loadBestSellerSources(): Promise<
+  readonly BestSellerSource[]
+> {
+  if (!existsSync(OVERRIDE_PATH)) return DEFAULT_BESTSELLER_SOURCES
+  const raw = await readFile(OVERRIDE_PATH, 'utf8')
+  const parsed = JSON.parse(raw) as unknown
   if (!Array.isArray(parsed)) {
-    throw new Error(`${OVERRIDE_PATH} must be a JSON array of { category, url, label? }`);
+    throw new Error(
+      `${OVERRIDE_PATH} must be a JSON array of { category, url, label? }`,
+    )
   }
-  return parsed as BestSellerSource[];
+  return parsed as BestSellerSource[]
 }

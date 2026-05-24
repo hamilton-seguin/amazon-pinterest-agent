@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react';
-import type { PinDraft } from '../../types.js';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
+import { useEffect, useState } from 'react'
+import type { PinDraft } from '../../types.js'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 import {
   Dialog,
   DialogContent,
@@ -10,45 +10,49 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
+} from '@/components/ui/dialog'
 
 interface Props {
-  draft: PinDraft | undefined;
-  open: boolean;
-  onOpenChange(open: boolean): void;
-  onSave(updates: { pinTitle?: string; pinDescription?: string }): Promise<void> | void;
+  draft: PinDraft | undefined
+  open: boolean
+  onOpenChange(open: boolean): void
+  onSave(updates: {
+    pinTitle?: string
+    pinDescription?: string
+  }): Promise<void> | void
 }
 
 export function EditDraftDialog({ draft, open, onOpenChange, onSave }: Props) {
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
+  const [title, setTitle] = useState('')
+  const [description, setDescription] = useState('')
 
   useEffect(() => {
     if (open && draft) {
-      setTitle(draft.pinTitle);
-      setDescription(draft.pinDescription);
+      setTitle(draft.pinTitle)
+      setDescription(draft.pinDescription)
     }
-  }, [open, draft]);
+  }, [open, draft])
 
   async function handleSave() {
-    if (!draft) return;
-    const updates: { pinTitle?: string; pinDescription?: string } = {};
-    if (title.trim() && title.trim() !== draft.pinTitle) updates.pinTitle = title.trim();
+    if (!draft) return
+    const updates: { pinTitle?: string; pinDescription?: string } = {}
+    if (title.trim() && title.trim() !== draft.pinTitle)
+      updates.pinTitle = title.trim()
     if (description.trim() && description.trim() !== draft.pinDescription) {
-      updates.pinDescription = description.trim();
+      updates.pinDescription = description.trim()
     }
-    if (Object.keys(updates).length > 0) await onSave(updates);
-    onOpenChange(false);
+    if (Object.keys(updates).length > 0) await onSave(updates)
+    onOpenChange(false)
   }
 
   function handleKeyDown(e: React.KeyboardEvent) {
     if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
-      e.preventDefault();
-      void handleSave();
+      e.preventDefault()
+      void handleSave()
     }
     if (e.key === 'Escape') {
-      e.preventDefault();
-      onOpenChange(false);
+      e.preventDefault()
+      onOpenChange(false)
     }
   }
 
@@ -59,7 +63,10 @@ export function EditDraftDialog({ draft, open, onOpenChange, onSave }: Props) {
           <DialogTitle>Edit draft</DialogTitle>
           <DialogDescription>
             Update pin title and description before approving.
-            <span className="opacity-70"> Cmd/Ctrl + Enter to save, Esc to cancel.</span>
+            <span className="opacity-70">
+              {' '}
+              Cmd/Ctrl + Enter to save, Esc to cancel.
+            </span>
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
@@ -95,5 +102,5 @@ export function EditDraftDialog({ draft, open, onOpenChange, onSave }: Props) {
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  );
+  )
 }

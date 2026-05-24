@@ -1,6 +1,10 @@
-import type { Category, ProductCandidate } from '../../types.js';
-import { buildAffiliateUrl } from '../../services/affiliateLinkBuilder.js';
-import type { AmazonProvider, AmazonSearchOptions, RawAmazonItem } from './amazon.types.js';
+import type { Category, ProductCandidate } from '../../types.js'
+import { buildAffiliateUrl } from '../../services/affiliateLinkBuilder.js'
+import type {
+  AmazonProvider,
+  AmazonSearchOptions,
+  RawAmazonItem,
+} from './amazon.types.js'
 
 const FIXTURES: Record<Category, RawAmazonItem[]> = {
   travel: [
@@ -93,10 +97,10 @@ const FIXTURES: Record<Category, RawAmazonItem[]> = {
       reviewCount: 11200,
     },
   ],
-};
+}
 
 export class MockAmazonClient implements AmazonProvider {
-  readonly name = 'mock';
+  readonly name = 'mock'
 
   constructor(
     private readonly associateTag: string,
@@ -104,23 +108,28 @@ export class MockAmazonClient implements AmazonProvider {
   ) {}
 
   async search(opts: AmazonSearchOptions): Promise<ProductCandidate[]> {
-    const items = FIXTURES[opts.category] ?? [];
-    const now = new Date().toISOString();
+    const items = FIXTURES[opts.category] ?? []
+    const now = new Date().toISOString()
     return items.slice(0, opts.limit).map((it) => {
       const candidate: ProductCandidate = {
         asin: it.asin,
         title: it.title,
         imageUrl: it.imageUrl,
         productUrl: it.productUrl,
-        affiliateUrl: buildAffiliateUrl(it.asin, this.associateTag, this.marketplace),
+        affiliateUrl: buildAffiliateUrl(
+          it.asin,
+          this.associateTag,
+          this.marketplace,
+        ),
         category: opts.category,
         fetchedAt: now,
-      };
-      if (it.price !== undefined) candidate.price = it.price;
-      if (it.rating !== undefined) candidate.rating = it.rating;
-      if (it.reviewCount !== undefined) candidate.reviewCount = it.reviewCount;
-      if (it.bestsellerRank !== undefined) candidate.bestsellerRank = it.bestsellerRank;
-      return candidate;
-    });
+      }
+      if (it.price !== undefined) candidate.price = it.price
+      if (it.rating !== undefined) candidate.rating = it.rating
+      if (it.reviewCount !== undefined) candidate.reviewCount = it.reviewCount
+      if (it.bestsellerRank !== undefined)
+        candidate.bestsellerRank = it.bestsellerRank
+      return candidate
+    })
   }
 }

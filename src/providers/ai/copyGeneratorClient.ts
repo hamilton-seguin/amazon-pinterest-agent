@@ -1,18 +1,18 @@
-import type { Category, ProductCandidate } from '../../types.js';
+import type { Category, ProductCandidate } from '../../types.js'
 
 export interface CopyInput {
-  product: ProductCandidate;
-  category: Category;
+  product: ProductCandidate
+  category: Category
 }
 
 export interface CopyOutput {
-  pinTitle: string;
-  pinDescription: string;
+  pinTitle: string
+  pinDescription: string
 }
 
 export interface CopyProvider {
-  name: string;
-  generate(input: CopyInput): Promise<CopyOutput>;
+  name: string
+  generate(input: CopyInput): Promise<CopyOutput>
 }
 
 const SYSTEM_PROMPT = `You write Pinterest Pin copy for affiliate products.
@@ -24,10 +24,10 @@ Rules:
 - Do NOT make medical claims.
 - Do NOT copy Amazon's description verbatim.
 - End the description with the literal disclosure: "Affiliate link — I may earn a commission <3"
-Return strict JSON: {"pinTitle": "...", "pinDescription": "..."}.`;
+Return strict JSON: {"pinTitle": "...", "pinDescription": "..."}.`
 
 export class AnthropicCopyProvider implements CopyProvider {
-  readonly name = 'anthropic';
+  readonly name = 'anthropic'
 
   constructor(private readonly apiKey: string) {}
 
@@ -45,20 +45,20 @@ export class AnthropicCopyProvider implements CopyProvider {
         system: SYSTEM_PROMPT,
         messages: [{ role: 'user', content: buildUserPrompt(input) }],
       }),
-    });
+    })
     if (!res.ok) {
-      throw new Error(`Anthropic API ${res.status}`);
+      throw new Error(`Anthropic API ${res.status}`)
     }
     const json = (await res.json()) as {
-      content: Array<{ type: string; text?: string }>;
-    };
-    const text = json.content.find((c) => c.type === 'text')?.text ?? '';
-    return parseJsonCopy(text);
+      content: Array<{ type: string; text?: string }>
+    }
+    const text = json.content.find((c) => c.type === 'text')?.text ?? ''
+    return parseJsonCopy(text)
   }
 }
 
 export class OpenAiCopyProvider implements CopyProvider {
-  readonly name = 'openai';
+  readonly name = 'openai'
 
   constructor(private readonly apiKey: string) {}
 
@@ -78,36 +78,38 @@ export class OpenAiCopyProvider implements CopyProvider {
           { role: 'user', content: buildUserPrompt(input) },
         ],
       }),
-    });
+    })
     if (!res.ok) {
-      throw new Error(`OpenAI API ${res.status}`);
+      throw new Error(`OpenAI API ${res.status}`)
     }
     const json = (await res.json()) as {
-      choices: Array<{ message: { content: string } }>;
-    };
-    return parseJsonCopy(json.choices[0]?.message.content ?? '');
+      choices: Array<{ message: { content: string } }>
+    }
+    return parseJsonCopy(json.choices[0]?.message.content ?? '')
   }
 }
 
 function buildUserPrompt(input: CopyInput): string {
-  const { product, category } = input;
+  const { product, category } = input
   return [
     `Category: ${category}`,
     `Product title: ${product.title}`,
     product.rating !== undefined ? `Rating: ${product.rating}` : null,
-    product.reviewCount !== undefined ? `Reviews: ${product.reviewCount}` : null,
+    product.reviewCount !== undefined
+      ? `Reviews: ${product.reviewCount}`
+      : null,
     'Write Pinterest copy as instructed. Return JSON only.',
   ]
     .filter(Boolean)
-    .join('\n');
+    .join('\n')
 }
 
 function parseJsonCopy(text: string): CopyOutput {
-  const match = text.match(/\{[\s\S]*\}/);
-  if (!match) throw new Error('AI copy response missing JSON');
-  const obj = JSON.parse(match[0]) as Partial<CopyOutput>;
+  const match = text.match(/\{[\s\S]*\}/)
+  if (!match) throw new Error('AI copy response missing JSON')
+  const obj = JSON.parse(match[0]) as Partial<CopyOutput>
   if (!obj.pinTitle || !obj.pinDescription) {
-    throw new Error('AI copy missing required fields');
+    throw new Error('AI copy missing required fields')
   }
-  return { pinTitle: obj.pinTitle, pinDescription: obj.pinDescription };
+  return { pinTitle: obj.pinTitle, pinDescription: obj.pinDescription }
 }

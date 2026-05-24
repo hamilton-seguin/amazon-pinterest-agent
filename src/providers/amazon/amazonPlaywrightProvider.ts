@@ -11,47 +11,49 @@
  * - Uses polite delays between page loads.
  * - Headful by default. Set PLAYWRIGHT_HEADLESS=true to hide window.
  */
-import type { Browser, Page } from 'playwright';
-import type { AppConfig } from '../../config.js';
-import { buildAffiliateUrl } from '../../services/affiliateLinkBuilder.js';
-import type { Category, ProductCandidate } from '../../types.js';
-import { logger } from '../../utils/logger.js';
+import type { Browser, Page } from 'playwright'
+import type { AppConfig } from '../../config.js'
+import { buildAffiliateUrl } from '../../services/affiliateLinkBuilder.js'
+import type { Category, ProductCandidate } from '../../types.js'
+import { logger } from '../../utils/logger.js'
 
-const ASIN_RE = /\/dp\/([A-Z0-9]{10})(?:[/?]|$)/;
-const POLITE_DELAY_MS_MIN = 2500;
-const POLITE_DELAY_MS_MAX = 5000;
-const NAV_TIMEOUT_MS = 30000;
+const ASIN_RE = /\/dp\/([A-Z0-9]{10})(?:[/?]|$)/
+const POLITE_DELAY_MS_MIN = 2500
+const POLITE_DELAY_MS_MAX = 5000
+const NAV_TIMEOUT_MS = 30000
 
 export interface CollectSourceInput {
-  category: Category;
-  url: string;
-  label?: string;
+  category: Category
+  url: string
+  label?: string
 }
 
 export interface PlaywrightCollectorOptions {
-  totalTarget: number;
-  perCategoryCap: number;
-  perPageCap: number;
-  headless: boolean;
-  alreadySeenAsins: ReadonlySet<string>;
+  totalTarget: number
+  perCategoryCap: number
+  perPageCap: number
+  headless: boolean
+  alreadySeenAsins: ReadonlySet<string>
 }
 
 export class CaptchaDetectedError extends Error {
   constructor(public readonly url: string) {
-    super(`Amazon access challenge / CAPTCHA detected on ${url}. Aborting — manual review required.`);
-    this.name = 'CaptchaDetectedError';
+    super(
+      `Amazon access challenge / CAPTCHA detected on ${url}. Aborting — manual review required.`,
+    )
+    this.name = 'CaptchaDetectedError'
   }
 }
 
 interface RawCard {
-  asin: string;
-  title: string;
-  imageUrl: string;
-  productUrl: string;
-  price?: string;
-  rating?: number;
-  reviewCount?: number;
-  bestsellerRank?: number;
+  asin: string
+  title: string
+  imageUrl: string
+  productUrl: string
+  price?: string
+  rating?: number
+  reviewCount?: number
+  bestsellerRank?: number
 }
 
 export async function collectFromBestSellers(
@@ -59,52 +61,52 @@ export async function collectFromBestSellers(
   cfg: AppConfig,
   opts: PlaywrightCollectorOptions,
 ): Promise<ProductCandidate[]> {
-  const { chromium } = await import('playwright');
-  const browser: Browser = await chromium.launch({ headless: opts.headless });
+  const { chromium } = await import('playwright')
+  const browser: Browser = await chromium.launch({ headless: opts.headless })
   const context = await browser.newContext({
     locale: 'fr-FR',
     viewport: { width: 1366, height: 900 },
-  });
+  })
   // tsx (esbuild) wraps named functions with __name() to preserve Function.name.
   // When Playwright stringifies the evaluate callback and runs it in the page,
   // __name is undefined → ReferenceError. Inject a no-op polyfill into every page.
   await context.addInitScript(() => {
-    const g = globalThis as unknown as { __name?: <T>(fn: T) => T };
-    if (typeof g.__name !== 'function') g.__name = (fn) => fn;
-  });
-  const page = await context.newPage();
-  page.setDefaultTimeout(NAV_TIMEOUT_MS);
+    const g = globalThis as unknown as { __name?: <T>(fn: T) => T }
+    if (typeof g.__name !== 'function') g.__name = (fn) => fn
+  })
+  const page = await context.newPage()
+  page.setDefaultTimeout(NAV_TIMEOUT_MS)
 
-  const out: ProductCandidate[] = [];
-  const seen = new Set<string>(opts.alreadySeenAsins);
+  const out: ProductCandidate[] = []
+  const seen = new Set<string>(opts.alreadySeenAsins)
   try {
     for (let i = 0; i < sources.length; i += 1) {
       if (out.length >= opts.totalTarget) {
-        logger.info('Target reached, stopping early', { added: out.length });
-        break;
+        logger.info('Target reached, stopping early', { added: out.length })
+        break
       }
-      const src = sources[i]!;
+      const src = sources[i]!
       logger.info('Visiting best sellers page', {
         category: src.category,
         label: src.label ?? '',
         url: src.url,
         addedSoFar: out.length,
         target: opts.totalTarget,
-      });
-      if (i > 0) await politeDelay();
-      const rows = await scrapeOneSource(page, src.url, opts.perPageCap);
-      let addedFromThisPage = 0;
-      let duplicatesFromThisPage = 0;
+      })
+      if (i > 0) await politeDelay()
+      const rows = await scrapeOneSource(page, src.url, opts.perPageCap)
+      let addedFromThisPage = 0
+      let duplicatesFromThisPage = 0
       for (const r of rows) {
         if (seen.has(r.asin)) {
-          duplicatesFromThisPage += 1;
-          continue;
+          duplicatesFromThisPage += 1
+          continue
         }
-        seen.add(r.asin);
-        out.push(toCandidate(r, src.category, cfg));
-        addedFromThisPage += 1;
-        if (addedFromThisPage >= opts.perCategoryCap) break;
-        if (out.length >= opts.totalTarget) break;
+        seen.add(r.asin)
+        out.push(toCandidate(r, src.category, cfg))
+        addedFromThisPage += 1
+        if (addedFromThisPage >= opts.perCategoryCap) break
+        if (out.length >= opts.totalTarget) break
       }
       logger.info('Page result', {
         category: src.category,
@@ -112,31 +114,35 @@ export async function collectFromBestSellers(
         added: addedFromThisPage,
         duplicates: duplicatesFromThisPage,
         categoryCap: opts.perCategoryCap,
-      });
+      })
     }
   } finally {
-    await context.close();
-    await browser.close();
+    await context.close()
+    await browser.close()
   }
-  return out;
+  return out
 }
 
-async function scrapeOneSource(page: Page, url: string, limit: number): Promise<RawCard[]> {
+async function scrapeOneSource(
+  page: Page,
+  url: string,
+  limit: number,
+): Promise<RawCard[]> {
   try {
-    await page.goto(url, { waitUntil: 'domcontentloaded' });
+    await page.goto(url, { waitUntil: 'domcontentloaded' })
   } catch (err) {
     logger.warn('Navigation failed, skipping source', {
       url,
       error: err instanceof Error ? err.message : String(err),
-    });
-    return [];
+    })
+    return []
   }
 
   if (await isCaptchaPage(page)) {
-    throw new CaptchaDetectedError(url);
+    throw new CaptchaDetectedError(url)
   }
 
-  await dismissCookieBanner(page);
+  await dismissCookieBanner(page)
 
   // Best Sellers grid renders card containers with one of these roles.
   // Use a forgiving selector list; first match wins.
@@ -144,111 +150,114 @@ async function scrapeOneSource(page: Page, url: string, limit: number): Promise<
     '#gridItemRoot',
     '.zg-grid-general-faceout',
     '.p13n-sc-uncoverable-faceout',
-  ].join(', ');
+  ].join(', ')
 
   try {
-    await page.waitForSelector(cardSelector, { timeout: 10000 });
+    await page.waitForSelector(cardSelector, { timeout: 10000 })
   } catch {
-    logger.warn('No best-sellers product cards found on page (selectors may have changed)', { url });
-    return [];
+    logger.warn(
+      'No best-sellers product cards found on page (selectors may have changed)',
+      { url },
+    )
+    return []
   }
 
   const rows = await page.$$eval(
     cardSelector,
     (cards, limitArg: number) => {
-      const items: RawCard[] = [];
-      const seenAsins = new Set<string>();
+      const items: RawCard[] = []
+      const seenAsins = new Set<string>()
 
       function getAsinFromHref(href: string): string | null {
-        const m = href.match(/\/dp\/([A-Z0-9]{10})(?:[/?]|$)/);
-        return m ? (m[1] ?? null) : null;
+        const m = href.match(/\/dp\/([A-Z0-9]{10})(?:[/?]|$)/)
+        return m ? (m[1] ?? null) : null
       }
 
       function parseRating(text: string): number | undefined {
         // matches "4,7 sur 5" or "4.7 out of 5"
-        const m = text.match(/([0-9]+[.,][0-9])\s*(?:sur|out of)\s*5/i);
-        if (!m || m[1] === undefined) return undefined;
-        return Number.parseFloat(m[1].replace(',', '.'));
+        const m = text.match(/([0-9]+[.,][0-9])\s*(?:sur|out of)\s*5/i)
+        if (!m || m[1] === undefined) return undefined
+        return Number.parseFloat(m[1].replace(',', '.'))
       }
 
       function parseInteger(text: string): number | undefined {
-        const m = text.replace(/[\s ]/g, '').match(/(\d{1,9})/);
-        if (!m || m[1] === undefined) return undefined;
-        return Number.parseInt(m[1], 10);
+        const m = text.replace(/[\s ]/g, '').match(/(\d{1,9})/)
+        if (!m || m[1] === undefined) return undefined
+        return Number.parseInt(m[1], 10)
       }
 
       for (const card of Array.from(cards)) {
-        if (items.length >= limitArg) break;
+        if (items.length >= limitArg) break
 
-        const linkEl = card.querySelector('a.a-link-normal[href*="/dp/"]');
-        if (!linkEl) continue;
-        const href = linkEl.getAttribute('href') ?? '';
-        const asin = getAsinFromHref(href);
-        if (!asin) continue;
-        if (seenAsins.has(asin)) continue;
-        seenAsins.add(asin);
+        const linkEl = card.querySelector('a.a-link-normal[href*="/dp/"]')
+        if (!linkEl) continue
+        const href = linkEl.getAttribute('href') ?? ''
+        const asin = getAsinFromHref(href)
+        if (!asin) continue
+        if (seenAsins.has(asin)) continue
+        seenAsins.add(asin)
 
         const titleEl =
           card.querySelector('div._cDEzb_p13n-sc-css-line-clamp-3_g3dy1') ||
           card.querySelector('div[class*="line-clamp"]') ||
           linkEl.querySelector('span') ||
-          linkEl;
-        const title = (titleEl?.textContent ?? '').trim();
-        if (!title) continue;
+          linkEl
+        const title = (titleEl?.textContent ?? '').trim()
+        if (!title) continue
 
-        const imgEl = card.querySelector('img');
-        const imageUrl = imgEl?.getAttribute('src') ?? '';
-        if (!imageUrl) continue;
+        const imgEl = card.querySelector('img')
+        const imageUrl = imgEl?.getAttribute('src') ?? ''
+        if (!imageUrl) continue
 
         const productUrl = href.startsWith('http')
           ? href
-          : `https://www.amazon.fr${href}`;
+          : `https://www.amazon.fr${href}`
 
-        const rankText = card.querySelector('.zg-bdg-text')?.textContent ?? '';
-        const bestsellerRank = parseInteger(rankText);
+        const rankText = card.querySelector('.zg-bdg-text')?.textContent ?? ''
+        const bestsellerRank = parseInteger(rankText)
 
         const priceText =
           card.querySelector('._cDEzb_p13n-sc-price_3mJ9Z')?.textContent ??
           card.querySelector('.p13n-sc-price')?.textContent ??
           card.querySelector('.a-color-price')?.textContent ??
-          '';
-        const price = priceText.trim() || undefined;
+          ''
+        const price = priceText.trim() || undefined
 
-        const ratingAlt = card.querySelector('.a-icon-alt')?.textContent ?? '';
-        const rating = parseRating(ratingAlt);
+        const ratingAlt = card.querySelector('.a-icon-alt')?.textContent ?? ''
+        const rating = parseRating(ratingAlt)
 
         // Review count is rendered next to the rating icon.
         const reviewText =
           card.querySelector('.a-size-small')?.textContent ??
           card.querySelector('a[href*="#customerReviews"]')?.textContent ??
-          '';
-        const reviewCount = parseInteger(reviewText);
+          ''
+        const reviewCount = parseInteger(reviewText)
 
-        const raw: RawCard = { asin, title, imageUrl, productUrl };
-        if (price !== undefined) raw.price = price;
-        if (rating !== undefined) raw.rating = rating;
-        if (reviewCount !== undefined) raw.reviewCount = reviewCount;
-        if (bestsellerRank !== undefined) raw.bestsellerRank = bestsellerRank;
-        items.push(raw);
+        const raw: RawCard = { asin, title, imageUrl, productUrl }
+        if (price !== undefined) raw.price = price
+        if (rating !== undefined) raw.rating = rating
+        if (reviewCount !== undefined) raw.reviewCount = reviewCount
+        if (bestsellerRank !== undefined) raw.bestsellerRank = bestsellerRank
+        items.push(raw)
       }
-      return items;
+      return items
     },
     limit,
-  );
+  )
 
-  logger.info('Extracted product cards', { url, count: rows.length });
-  return rows;
+  logger.info('Extracted product cards', { url, count: rows.length })
+  return rows
 }
 
 async function isCaptchaPage(page: Page): Promise<boolean> {
-  const html = await page.content();
-  const lower = html.toLowerCase();
+  const html = await page.content()
+  const lower = html.toLowerCase()
   return (
     lower.includes('/errors/validatecaptcha') ||
     lower.includes('captchacharacters') ||
     lower.includes('enter the characters you see below') ||
-    lower.includes("saisir les caractères que vous voyez")
-  );
+    lower.includes('saisir les caractères que vous voyez')
+  )
 }
 
 /**
@@ -265,43 +274,52 @@ async function dismissCookieBanner(page: Page): Promise<void> {
     '#sp-cc-accept',
     'input[name="accept"]',
     'button[name="accept"]',
-  ].join(', ');
-  const locator = page.locator(combined).first();
+  ].join(', ')
+  const locator = page.locator(combined).first()
   try {
-    await locator.waitFor({ state: 'visible', timeout: 3000 });
+    await locator.waitFor({ state: 'visible', timeout: 3000 })
   } catch {
-    return; // no banner — already accepted in a prior page or not shown
+    return // no banner — already accepted in a prior page or not shown
   }
-  await locator.click({ timeout: 2000 }).catch(() => undefined);
-  logger.debug('Dismissed cookie banner');
-  await page.waitForLoadState('domcontentloaded').catch(() => undefined);
-  await page.waitForTimeout(500);
+  await locator.click({ timeout: 2000 }).catch(() => undefined)
+  logger.debug('Dismissed cookie banner')
+  await page.waitForLoadState('domcontentloaded').catch(() => undefined)
+  await page.waitForTimeout(500)
 }
 
-function toCandidate(r: RawCard, category: Category, cfg: AppConfig): ProductCandidate {
+function toCandidate(
+  r: RawCard,
+  category: Category,
+  cfg: AppConfig,
+): ProductCandidate {
   // Defensive: re-validate ASIN before letting it leave the collector.
   if (!ASIN_RE.test(`/dp/${r.asin}/`)) {
-    throw new Error(`Invalid ASIN extracted: ${r.asin}`);
+    throw new Error(`Invalid ASIN extracted: ${r.asin}`)
   }
   const candidate: ProductCandidate = {
     asin: r.asin,
     title: r.title,
     imageUrl: r.imageUrl,
     productUrl: r.productUrl,
-    affiliateUrl: buildAffiliateUrl(r.asin, cfg.AMAZON_ASSOCIATE_TAG, cfg.AMAZON_MARKETPLACE),
+    affiliateUrl: buildAffiliateUrl(
+      r.asin,
+      cfg.AMAZON_ASSOCIATE_TAG,
+      cfg.AMAZON_MARKETPLACE,
+    ),
     category,
     fetchedAt: new Date().toISOString(),
-  };
-  if (r.price !== undefined) candidate.price = r.price;
-  if (r.rating !== undefined) candidate.rating = r.rating;
-  if (r.reviewCount !== undefined) candidate.reviewCount = r.reviewCount;
-  if (r.bestsellerRank !== undefined) candidate.bestsellerRank = r.bestsellerRank;
-  return candidate;
+  }
+  if (r.price !== undefined) candidate.price = r.price
+  if (r.rating !== undefined) candidate.rating = r.rating
+  if (r.reviewCount !== undefined) candidate.reviewCount = r.reviewCount
+  if (r.bestsellerRank !== undefined)
+    candidate.bestsellerRank = r.bestsellerRank
+  return candidate
 }
 
 function politeDelay(): Promise<void> {
   const ms =
     POLITE_DELAY_MS_MIN +
-    Math.floor(Math.random() * (POLITE_DELAY_MS_MAX - POLITE_DELAY_MS_MIN));
-  return new Promise((res) => setTimeout(res, ms));
+    Math.floor(Math.random() * (POLITE_DELAY_MS_MAX - POLITE_DELAY_MS_MIN))
+  return new Promise((res) => setTimeout(res, ms))
 }

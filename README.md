@@ -33,23 +33,23 @@ Edit `.env`. The mock provider only needs `AMAZON_ASSOCIATE_TAG` to be set.
 
 ## Environment variables
 
-| Variable                  | Required               | Notes                                        |
-| ------------------------- | ---------------------- | -------------------------------------------- |
-| `AMAZON_ACCESS_KEY`       | only when paapi+live   | PA-API key                                   |
-| `AMAZON_SECRET_KEY`       | only when paapi+live   | PA-API secret (never logged)                 |
-| `AMAZON_ASSOCIATE_TAG`    | **always**             | Your affiliate tag, appended to every link   |
-| `AMAZON_MARKETPLACE`      | optional               | e.g. `www.amazon.com`                        |
-| `PINTEREST_ACCESS_TOKEN`  | only when live publish | OAuth access token (never logged in full)    |
-| `PINTEREST_BOARD_ID`      | only when live publish | Target board                                 |
-| `ANTHROPIC_API_KEY`       | optional               | If `COPY_PROVIDER=anthropic`                 |
-| `OPENAI_API_KEY`          | optional               | If `COPY_PROVIDER=openai`                    |
-| `AMAZON_PROVIDER`         | optional               | `mock` (default), `paapi`, or `playwright`   |
-| `PLAYWRIGHT_HEADLESS`     | optional               | `false` (default) — set `true` once stable   |
-| `AMAZON_BESTSELLER_MAX_PRODUCTS` | optional        | Total cap per `collect:amazon` run (default 10) |
-| `COPY_PROVIDER`           | optional               | `template` (default), `anthropic`, `openai`  |
-| `DRY_RUN`                 | optional               | `true` (default) blocks live Pinterest calls |
-| `LOG_LEVEL`               | optional               | `debug` \| `info` \| `warn` \| `error`       |
-| `LOCAL_API_PORT`          | optional               | Port for the local API bridge (default 5174) |
+| Variable                         | Required               | Notes                                           |
+| -------------------------------- | ---------------------- | ----------------------------------------------- |
+| `AMAZON_ACCESS_KEY`              | only when paapi+live   | PA-API key                                      |
+| `AMAZON_SECRET_KEY`              | only when paapi+live   | PA-API secret (never logged)                    |
+| `AMAZON_ASSOCIATE_TAG`           | **always**             | Your affiliate tag, appended to every link      |
+| `AMAZON_MARKETPLACE`             | optional               | e.g. `www.amazon.com`                           |
+| `PINTEREST_ACCESS_TOKEN`         | only when live publish | OAuth access token (never logged in full)       |
+| `PINTEREST_BOARD_ID`             | only when live publish | Target board                                    |
+| `ANTHROPIC_API_KEY`              | optional               | If `COPY_PROVIDER=anthropic`                    |
+| `OPENAI_API_KEY`                 | optional               | If `COPY_PROVIDER=openai`                       |
+| `AMAZON_PROVIDER`                | optional               | `mock` (default), `paapi`, or `playwright`      |
+| `PLAYWRIGHT_HEADLESS`            | optional               | `false` (default) — set `true` once stable      |
+| `AMAZON_BESTSELLER_MAX_PRODUCTS` | optional               | Total cap per `collect:amazon` run (default 10) |
+| `COPY_PROVIDER`                  | optional               | `template` (default), `anthropic`, `openai`     |
+| `DRY_RUN`                        | optional               | `true` (default) blocks live Pinterest calls    |
+| `LOG_LEVEL`                      | optional               | `debug` \| `info` \| `warn` \| `error`          |
+| `LOCAL_API_PORT`                 | optional               | Port for the local API bridge (default 5174)    |
 
 Secrets must **never** be committed. `.env` is gitignored.
 
@@ -70,11 +70,11 @@ npm run build:web             # production build of the review UI → dist-clien
 
 ### `daily` modes
 
-| Invocation                          | Source                                        |
-| ----------------------------------- | --------------------------------------------- |
-| `npm run daily`                     | Amazon PA-API. Errors if keys are missing.    |
-| `npm run daily --mock`              | Mock fixtures. No keys needed.                |
-| `npm run daily --manual`            | Playwright Best Sellers collector → drafts.   |
+| Invocation               | Source                                      |
+| ------------------------ | ------------------------------------------- |
+| `npm run daily`          | Amazon PA-API. Errors if keys are missing.  |
+| `npm run daily --mock`   | Mock fixtures. No keys needed.              |
+| `npm run daily --manual` | Playwright Best Sellers collector → drafts. |
 
 Each mode runs the full chain: **fetch → score → draft → manual review → publish**.
 Publishing always respects `DRY_RUN=true`.
@@ -90,6 +90,7 @@ waiting, you can populate `data/candidates.json` from Amazon Best Sellers pages
 using a Playwright collector. **This is a fallback, not the long-term path.**
 
 What it does:
+
 - Visits each configured Best Sellers URL (defaults to amazon.fr).
 - Extracts ASIN, title, image, optional price/rating/reviews/rank.
 - Detects access challenges / CAPTCHA and stops gracefully — never tries to bypass them.
@@ -107,9 +108,18 @@ Customize categories (optional): create `data/bestseller-urls.json`:
 
 ```json
 [
-  { "category": "travel", "url": "https://www.amazon.fr/gp/bestsellers/luggage" },
-  { "category": "fashion", "url": "https://www.amazon.fr/gp/bestsellers/fashion" },
-  { "category": "beauty", "url": "https://www.amazon.fr/gp/bestsellers/beauty" },
+  {
+    "category": "travel",
+    "url": "https://www.amazon.fr/gp/bestsellers/luggage"
+  },
+  {
+    "category": "fashion",
+    "url": "https://www.amazon.fr/gp/bestsellers/fashion"
+  },
+  {
+    "category": "beauty",
+    "url": "https://www.amazon.fr/gp/bestsellers/beauty"
+  },
   { "category": "baby", "url": "https://www.amazon.fr/gp/bestsellers/baby" }
 ]
 ```
@@ -157,10 +167,12 @@ Two views, switchable from the header:
 - **Approved Selection** — copy-paste assistant for `approved` items. One card at a time with per-field Copy buttons (title, description, affiliate link, image URL) plus a "Copy all" block, for manual Pinterest posting while PA-API / Pinterest API access is pending. Read-only — does **not** mark items as published.
 
 Shortcuts:
+
 - Draft Queue: `→` approve · `←` reject · `E` edit · `Cmd/Ctrl+Enter` save edit · `Esc` cancel edit
 - Approved Selection: `→` next · `←` previous
 
 Architecture:
+
 - `src/api/drafts.ts` is the single source of business logic (read/update/approve/skip).
 - `src/server/localApiServer.ts` is a minimal Node `http` bridge — it exists only because the browser cannot touch the local filesystem. Routes: `GET /api/drafts`, `PATCH /api/drafts/:asin`, `POST /api/drafts/:asin/approve`, `POST /api/drafts/:asin/skip`.
 - `src/client/lib/apiClient.ts` is the only thing the React app uses to talk to that bridge.

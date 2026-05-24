@@ -1,38 +1,43 @@
-import { useEffect } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
-import { ChevronLeft, ChevronRight, ClipboardCheck, RotateCw } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { ApprovedPinCard } from './ApprovedPinCard';
-import type { ApprovedSelection } from '@/hooks/useApprovedSelection';
+import { useEffect } from 'react'
+import { AnimatePresence, motion } from 'framer-motion'
+import {
+  ChevronLeft,
+  ChevronRight,
+  ClipboardCheck,
+  RotateCw,
+} from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
+import { ApprovedPinCard } from './ApprovedPinCard'
+import type { ApprovedSelection } from '@/hooks/useApprovedSelection'
 
 interface Props {
-  selection: ApprovedSelection;
+  selection: ApprovedSelection
 }
 
 export function ApprovedSelectionView({ selection }: Props) {
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
-      const tag = (e.target as HTMLElement | null)?.tagName;
-      if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+      const tag = (e.target as HTMLElement | null)?.tagName
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return
       if (e.key === 'ArrowRight') {
-        e.preventDefault();
-        selection.next();
+        e.preventDefault()
+        selection.next()
       } else if (e.key === 'ArrowLeft') {
-        e.preventDefault();
-        selection.prev();
+        e.preventDefault()
+        selection.prev()
       }
     }
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [selection]);
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [selection])
 
   if (selection.loading) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center text-muted-foreground">
         Loading approved Pins…
       </div>
-    );
+    )
   }
 
   if (selection.error) {
@@ -49,7 +54,7 @@ export function ApprovedSelectionView({ selection }: Props) {
           </button>
         </div>
       </div>
-    );
+    )
   }
 
   if (!selection.current) {
@@ -63,22 +68,26 @@ export function ApprovedSelectionView({ selection }: Props) {
             <div>
               <h2 className="text-xl font-semibold">No approved Pins yet</h2>
               <p className="text-sm text-muted-foreground mt-2">
-                Approve drafts in the Draft Queue, then come back here to copy them into
-                Pinterest manually.
+                Approve drafts in the Draft Queue, then come back here to copy
+                them into Pinterest manually.
               </p>
             </div>
-            <Button variant="outline" onClick={() => void selection.reload()} className="gap-2">
+            <Button
+              variant="outline"
+              onClick={() => void selection.reload()}
+              className="gap-2"
+            >
               <RotateCw className="h-4 w-4" /> Reload
             </Button>
           </CardContent>
         </Card>
       </div>
-    );
+    )
   }
 
-  const { index, total, current, next, prev, reload } = selection;
-  const atFirst = index === 0;
-  const atLast = index === total - 1;
+  const { index, total, current, next, prev, reload } = selection
+  const atFirst = index === 0
+  const atLast = index === total - 1
 
   return (
     <>
@@ -98,7 +107,9 @@ export function ApprovedSelectionView({ selection }: Props) {
         <div className="h-1.5 mt-2 w-full rounded-full bg-secondary overflow-hidden">
           <div
             className="h-full bg-primary transition-all duration-300"
-            style={{ width: `${total === 0 ? 0 : ((index + 1) / total) * 100}%` }}
+            style={{
+              width: `${total === 0 ? 0 : ((index + 1) / total) * 100}%`,
+            }}
           />
         </div>
       </div>
@@ -147,5 +158,5 @@ export function ApprovedSelectionView({ selection }: Props) {
         </div>
       </div>
     </>
-  );
+  )
 }

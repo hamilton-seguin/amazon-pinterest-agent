@@ -1,14 +1,14 @@
-import { useState } from 'react';
-import { ExternalLink } from 'lucide-react';
-import type { PinDraft } from '../../types.js';
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { CopyField } from './CopyField';
-import { cn } from '@/lib/utils';
+import { useState } from 'react'
+import { ExternalLink } from 'lucide-react'
+import type { PinDraft } from '../../types.js'
+import { Card, CardContent } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { CopyField } from './CopyField'
+import { cn } from '@/lib/utils'
 
 interface Props {
-  draft: PinDraft;
+  draft: PinDraft
 }
 
 function formatAll(d: PinDraft): string {
@@ -20,18 +20,18 @@ function formatAll(d: PinDraft): string {
     `Link:\n${d.affiliateUrl}`,
     ``,
     `Image:\n${d.imageUrl}`,
-  ].join('\n');
+  ].join('\n')
 }
 
 export function ApprovedPinCard({ draft }: Props) {
-  const [imgError, setImgError] = useState(false);
-  const [copiedAll, setCopiedAll] = useState(false);
+  const [imgError, setImgError] = useState(false)
+  const [copiedAll, setCopiedAll] = useState(false)
 
   async function handleCopyAll() {
     try {
-      await navigator.clipboard.writeText(formatAll(draft));
-      setCopiedAll(true);
-      window.setTimeout(() => setCopiedAll(false), 1500);
+      await navigator.clipboard.writeText(formatAll(draft))
+      setCopiedAll(true)
+      window.setTimeout(() => setCopiedAll(false), 1500)
     } catch {
       // ignore — per-field copy still works
     }
@@ -52,14 +52,21 @@ export function ApprovedPinCard({ draft }: Props) {
           <div className="text-muted-foreground text-sm">Image unavailable</div>
         )}
         <div className="absolute top-3 left-3 flex gap-2">
-          <Badge variant="secondary" className="bg-black/60 text-white border-transparent">
+          <Badge
+            variant="secondary"
+            className="bg-black/60 text-white border-transparent"
+          >
             {draft.category}
           </Badge>
           <Badge
             variant="default"
             className={cn(
               'border-transparent text-white',
-              draft.score >= 70 ? 'bg-success/80' : draft.score >= 40 ? 'bg-primary/80' : 'bg-muted-foreground/70',
+              draft.score >= 70
+                ? 'bg-success/80'
+                : draft.score >= 40
+                  ? 'bg-primary/80'
+                  : 'bg-muted-foreground/70',
             )}
           >
             Score {draft.score}
@@ -97,5 +104,5 @@ export function ApprovedPinCard({ draft }: Props) {
         </div>
       </CardContent>
     </Card>
-  );
+  )
 }
