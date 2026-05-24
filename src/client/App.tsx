@@ -33,8 +33,8 @@ export default function App() {
   return (
     <div className="min-h-screen flex flex-col">
       <header className="border-b border-border/60">
-        <div className="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
-          <h1 className="text-base font-semibold tracking-tight">Pin Draft Review</h1>
+        <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
+          <h1 className="text-base font-semibold tracking-tight">Amazon Product Review</h1>
           <AppNavigation
             view={view}
             onChange={setView}
