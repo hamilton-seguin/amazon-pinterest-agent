@@ -1,0 +1,32 @@
+{
+  "name": "amazon-pinterest-agent",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Local CLI that turns Amazon affiliate products into reviewed Pinterest Pins.",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "start": "node --enable-source-maps dist/index.js",
+    "dev": "tsx src/index.ts",
+    "generate:candidates": "tsx src/index.ts generate:candidates",
+    "collect:amazon": "tsx src/index.ts collect:amazon",
+    "review:candidates": "tsx src/index.ts review:candidates",
+    "publish:approved": "tsx src/index.ts publish:approved",
+    "clear:candidates": "tsx src/index.ts clear:candidates",
+    "daily": "tsx src/index.ts daily"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.41",
+    "playwright": "^1.46.0",
+    "tsx": "^4.16.2",
+    "typescript": "^5.5.3"
+  }
+}
