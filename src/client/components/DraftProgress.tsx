@@ -9,7 +9,7 @@ interface Props {
 
 export function DraftProgress({ index, total, approved, skipped }: Props) {
   const current = Math.min(index + 1, total);
-  const pct = total === 0 ? 0 : Math.min(100, (index / total) * 100);
+  const pct = total === 0 ? 0 : Math.min(100, (current / total) * 100);
   return (
     <div className="w-full max-w-xl mx-auto px-4 pt-6 pb-2">
       <div className="flex items-center justify-between text-sm text-muted-foreground mb-2">
