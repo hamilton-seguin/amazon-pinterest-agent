@@ -6,6 +6,7 @@
 # Build artifacts
 node_modules/
 dist/
+dist-client/
 *.tsbuildinfo
 
 # Logs

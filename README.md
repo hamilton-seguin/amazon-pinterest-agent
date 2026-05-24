@@ -8,7 +8,7 @@ A local Node.js / TypeScript CLI that turns Amazon affiliate products into revie
 2. Filters out duplicates, banned categories, and low-quality listings.
 3. Scores each survivor 0–100 on Pinterest click potential.
 4. Generates Pin copy (deterministic template or optional Anthropic / OpenAI).
-5. Lets you manually approve, skip, or edit each draft.
+5. Lets you manually approve, skip, or edit each draft — via CLI **or** a local Tinder-style web UI (`npm run dev`).
 6. Publishes approved drafts to a specific Pinterest board via Pinterest API v5.
 7. Stores history locally so the same product is never re-published.
 
@@ -49,6 +49,7 @@ Edit `.env`. The mock provider only needs `AMAZON_ASSOCIATE_TAG` to be set.
 | `COPY_PROVIDER`           | optional               | `template` (default), `anthropic`, `openai`  |
 | `DRY_RUN`                 | optional               | `true` (default) blocks live Pinterest calls |
 | `LOG_LEVEL`               | optional               | `debug` \| `info` \| `warn` \| `error`       |
+| `LOCAL_API_PORT`          | optional               | Port for the local API bridge (default 5174) |
 
 Secrets must **never** be committed. `.env` is gitignored.
 
@@ -57,10 +58,14 @@ Secrets must **never** be committed. `.env` is gitignored.
 ```bash
 npm run generate:candidates   # fetch from configured provider + score + draft
 npm run collect:amazon        # temporary Playwright collector (Best Sellers)
-npm run review:candidates     # interactive approval
+npm run review:candidates     # interactive CLI approval
 npm run publish:approved      # publish approved (respects DRY_RUN)
 npm run clear:candidates      # empty data/candidates.json
 npm run daily                 # full pipeline; pick a source mode via flag
+npm run dev                   # local visual review UI (API bridge + Vite frontend)
+npm run dev:api               # local API bridge only (port 5174)
+npm run dev:web               # Vite frontend only (port 5173)
+npm run build:web             # production build of the review UI → dist-client/
 ```
 
 ### `daily` modes
@@ -133,6 +138,34 @@ in `src/providers/amazon/amazonClient.ts`, and **delete the Playwright fallback*
 - The `collect:amazon` entries in `src/index.ts` and `package.json`
 - `playwright` from `devDependencies`
 
+## Visual review UI (Tinder-style)
+
+The CLI and the UI share the same storage — approving in either makes the draft
+appear as `approved` to the other. The UI is local-only and does **not** publish
+to Pinterest.
+
+```bash
+npm install
+npm run generate:candidates   # fill data/drafts.json
+npm run dev                   # starts API bridge (5174) + Vite frontend (5173)
+# open http://localhost:5173
+```
+
+Two views, switchable from the header:
+
+- **Draft Queue** — Tinder-style review of `drafted` items. Approve / reject / edit.
+- **Approved Selection** — copy-paste assistant for `approved` items. One card at a time with per-field Copy buttons (title, description, affiliate link, image URL) plus a "Copy all" block, for manual Pinterest posting while PA-API / Pinterest API access is pending. Read-only — does **not** mark items as published.
+
+Shortcuts:
+- Draft Queue: `→` approve · `←` reject · `E` edit · `Cmd/Ctrl+Enter` save edit · `Esc` cancel edit
+- Approved Selection: `→` next · `←` previous
+
+Architecture:
+- `src/api/drafts.ts` is the single source of business logic (read/update/approve/skip).
+- `src/server/localApiServer.ts` is a minimal Node `http` bridge — it exists only because the browser cannot touch the local filesystem. Routes: `GET /api/drafts`, `PATCH /api/drafts/:asin`, `POST /api/drafts/:asin/approve`, `POST /api/drafts/:asin/skip`.
+- `src/client/lib/apiClient.ts` is the only thing the React app uses to talk to that bridge.
+- Vite dev server proxies `/api` → `http://localhost:5174`.
+
 ## Typical first run (mock data, dry run)
 
 ```bash
@@ -161,6 +194,7 @@ src/
   index.ts                       CLI dispatcher
   config.ts                      Zod env validation
   types.ts                       ProductCandidate, PinDraft
+  api/drafts.ts                  shared draft business logic (CLI + UI both call this)
   cli/generate.ts                generate:candidates command
   providers/
     amazon/                      Mock + PA-API stub
@@ -172,18 +206,29 @@ src/
     copyGenerator.ts             template fallback + AI wrapper
     affiliateLinkBuilder.ts      ASIN + tag → URL
     pinPublisher.ts              DRY_RUN-aware publisher
-    reviewQueue.ts               interactive approve/skip/edit
+    reviewQueue.ts               interactive CLI approve/skip/edit
   storage/jsonStore.ts           atomic JSON file storage
+  server/
+    localApiServer.ts            minimal Node http bridge for the browser UI
+    draftRoutes.ts               GET/PATCH/POST routes wrapping src/api/drafts.ts
+  client/                        Vite + React review UI (browser-only)
+    main.tsx, App.tsx
+    components/                  DraftReviewCard, DraftProgress, DraftActions, EditDraftDialog, EmptyState, ui/*
+    hooks/useDraftReview.ts
+    lib/apiClient.ts, lib/utils.ts
+    tsconfig.json                client-only TS config
   utils/
     logger.ts                    secret-masking logger
     maskSecret.ts                token masking
     sanitize.ts                  banned phrases + disclosure
+index.html                       Vite entry
+vite.config.ts                   /api proxied to localhost:5174
+tailwind.config.ts, postcss.config.js
 data/                            local-only; gitignored
 ```
 
 ## Roadmap
 
 - Implement real PA-API SigV4 call in `amazonClient.ts`, then remove the Playwright fallback.
-- Create visual interface for review queue instead of CLI prompts.
 - Swap JSON storage for SQLite once history is large.
 - Add unit tests around scoring + sanitization.

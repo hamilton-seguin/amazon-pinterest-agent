@@ -23,7 +23,7 @@ Rules:
 - Do NOT use words: guaranteed, miracle, cure, cures, official, "100% effective", "FDA approved".
 - Do NOT make medical claims.
 - Do NOT copy Amazon's description verbatim.
-- End the description with the literal disclosure: "Affiliate link — I may earn a commission if you buy through this Pin."
+- End the description with the literal disclosure: "Affiliate link — I may earn a commission <3"
 Return strict JSON: {"pinTitle": "...", "pinDescription": "..."}.`;
 
 export class AnthropicCopyProvider implements CopyProvider {

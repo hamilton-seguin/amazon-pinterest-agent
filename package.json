@@ -10,23 +10,45 @@
   "scripts": {
     "build": "tsc",
     "typecheck": "tsc --noEmit",
+    "typecheck:client": "tsc --noEmit -p src/client/tsconfig.json",
     "start": "node --enable-source-maps dist/index.js",
-    "dev": "tsx src/index.ts",
+    "cli": "tsx src/index.ts",
     "generate:candidates": "tsx src/index.ts generate:candidates",
     "collect:amazon": "tsx src/index.ts collect:amazon",
     "review:candidates": "tsx src/index.ts review:candidates",
     "publish:approved": "tsx src/index.ts publish:approved",
     "clear:candidates": "tsx src/index.ts clear:candidates",
-    "daily": "tsx src/index.ts daily"
+    "daily": "tsx src/index.ts daily",
+    "dev:api": "tsx src/server/localApiServer.ts",
+    "dev:web": "vite",
+    "dev": "concurrently -k -n api,web -c blue,magenta \"npm:dev:api\" \"npm:dev:web\"",
+    "build:web": "vite build"
   },
   "dependencies": {
+    "@radix-ui/react-dialog": "^1.1.2",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
     "dotenv": "^16.4.5",
+    "framer-motion": "^11.11.17",
+    "lucide-react": "^0.460.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "tailwind-merge": "^2.5.4",
     "zod": "^3.23.8"
   },
   "devDependencies": {
     "@types/node": "^20.19.41",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.3",
+    "autoprefixer": "^10.4.20",
+    "concurrently": "^9.0.1",
     "playwright": "^1.46.0",
+    "postcss": "^8.4.47",
+    "tailwindcss": "^3.4.14",
+    "tailwindcss-animate": "^1.0.7",
     "tsx": "^4.16.2",
-    "typescript": "^5.5.3"
+    "typescript": "^5.5.3",
+    "vite": "^5.4.10"
   }
 }

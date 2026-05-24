@@ -1,7 +1,7 @@
 import * as readline from 'node:readline/promises';
 import { stdin as input, stdout as output } from 'node:process';
 import type { PinDraft } from '../types.js';
-import { stores } from '../storage/jsonStore.js';
+import { approveDraft, getDrafts, skipDraft, updateDraft } from '../api/drafts.js';
 import { logger } from '../utils/logger.js';
 
 type Decision = 'a' | 's' | 'e' | 'q';
@@ -32,14 +32,16 @@ async function promptDecision(rl: readline.Interface): Promise<Decision> {
   }
 }
 
-async function editDraft(d: PinDraft, rl: readline.Interface): Promise<PinDraft> {
+async function promptEdit(
+  d: PinDraft,
+  rl: readline.Interface,
+): Promise<{ pinTitle?: string; pinDescription?: string }> {
   const newTitle = (await rl.question(`New title (blank = keep): `)).trim();
   const newDesc = (await rl.question(`New description (blank = keep, single line): `)).trim();
-  return {
-    ...d,
-    pinTitle: newTitle || d.pinTitle,
-    pinDescription: newDesc || d.pinDescription,
-  };
+  const updates: { pinTitle?: string; pinDescription?: string } = {};
+  if (newTitle) updates.pinTitle = newTitle;
+  if (newDesc) updates.pinDescription = newDesc;
+  return updates;
 }
 
 export async function runReviewQueue(): Promise<{
@@ -47,8 +49,7 @@ export async function runReviewQueue(): Promise<{
   skipped: PinDraft[];
   remaining: PinDraft[];
 }> {
-  const drafts = await stores.drafts.read();
-  const pending = drafts.filter((d) => d.status === 'drafted');
+  const pending = await getDrafts('drafted');
   if (pending.length === 0) {
     logger.info('No drafts pending review. Run generate:candidates first.');
     return { approved: [], skipped: [], remaining: [] };
@@ -75,28 +76,20 @@ export async function runReviewQueue(): Promise<{
         continue;
       }
       if (decision === 'a') {
-        approved.push({ ...current, status: 'approved' });
+        approved.push(await approveDraft(current.asin));
         continue;
       }
       if (decision === 's') {
-        skipped.push({ ...current, status: 'skipped' });
+        skipped.push(await skipDraft(current.asin));
         continue;
       }
-      const edited = await editDraft(current, rl);
-      approved.push({ ...edited, status: 'approved' });
+      const updates = await promptEdit(current, rl);
+      if (Object.keys(updates).length > 0) await updateDraft(current.asin, updates);
+      approved.push(await approveDraft(current.asin));
     }
   } finally {
     rl.close();
   }
 
-  const untouched = drafts.filter((d) => d.status !== 'drafted');
-  const reviewed = [...approved, ...skipped, ...remaining];
-  await stores.drafts.writeAll([...untouched, ...reviewed]);
-  if (approved.length > 0) {
-    const existing = await stores.approved.read();
-    const byAsin = new Map(existing.map((d) => [d.asin, d]));
-    for (const a of approved) byAsin.set(a.asin, a);
-    await stores.approved.writeAll([...byAsin.values()]);
-  }
   return { approved, skipped, remaining };
 }

@@ -56,7 +56,7 @@ export function containsRestrictedCategory(text: string): string | null {
 }
 
 export const AFFILIATE_DISCLOSURE =
-  'Affiliate link — I may earn a commission if you buy through this Pin.';
+  'Affiliate link — I may earn a commission <3';
 
 export function ensureDisclosure(description: string): string {
   if (description.toLowerCase().includes('affiliate link')) return description;
