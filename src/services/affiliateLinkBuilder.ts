@@ -1,5 +1,5 @@
 const ASIN_RE = /^[A-Z0-9]{10}$/;
-const DEFAULT_MARKETPLACE = 'www.amazon.com';
+const DEFAULT_MARKETPLACE = 'www.amazon.fr';
 
 export function buildAffiliateUrl(
   asin: string,

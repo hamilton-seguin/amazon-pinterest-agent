@@ -17,7 +17,7 @@ const baseSchema = z.object({
   AMAZON_ACCESS_KEY: z.string().optional(),
   AMAZON_SECRET_KEY: z.string().optional(),
   AMAZON_ASSOCIATE_TAG: z.string().min(1, 'AMAZON_ASSOCIATE_TAG required for affiliate links'),
-  AMAZON_MARKETPLACE: z.string().default('www.amazon.com'),
+  AMAZON_MARKETPLACE: z.string().default('www.amazon.fr'),
 
   PINTEREST_ACCESS_TOKEN: z.string().optional(),
   PINTEREST_BOARD_ID: z.string().optional(),
