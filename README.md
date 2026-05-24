@@ -50,6 +50,7 @@ Edit `.env`. The mock provider only needs `AMAZON_ASSOCIATE_TAG` to be set.
 | `DRY_RUN`                        | optional               | `true` (default) blocks live Pinterest calls    |
 | `LOG_LEVEL`                      | optional               | `debug` \| `info` \| `warn` \| `error`          |
 | `LOCAL_API_PORT`                 | optional               | Port for the local API bridge (default 5174)    |
+| `APP_DATA_DIR`                   | optional               | Override JSON storage dir (used by tests)       |
 
 Secrets must **never** be committed. `.env` is gitignored.
 
@@ -66,7 +67,13 @@ npm run dev                   # local visual review UI (API bridge + Vite fronte
 npm run dev:api               # local API bridge only (port 5174)
 npm run dev:web               # Vite frontend only (port 5173)
 npm run build:web             # production build of the review UI → dist-client/
+npm run test                  # Vitest unit + integration suite (no network/data writes)
+npm run test:watch            # Vitest in watch mode
+npm run test:coverage         # Vitest with v8 coverage report
 ```
+
+Tests use a temporary `APP_DATA_DIR` per test, never touch `data/*.json`, and
+mock all external services (Amazon / Pinterest / OpenAI / Anthropic).
 
 ### `daily` modes
 

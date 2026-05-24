@@ -2,10 +2,14 @@ import { mkdir, readFile, rename, writeFile } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 
-const DATA_DIR = resolve(process.cwd(), 'data')
+function dataDir(): string {
+  const override = process.env.APP_DATA_DIR
+  if (override && override.trim()) return resolve(override)
+  return resolve(process.cwd(), 'data')
+}
 
 export interface JsonStore<T> {
-  path: string
+  readonly path: string
   read(): Promise<T[]>
   writeAll(rows: T[]): Promise<void>
   append(row: T): Promise<void>
@@ -13,9 +17,12 @@ export interface JsonStore<T> {
 }
 
 export function jsonStore<T>(fileName: string): JsonStore<T> {
-  const path = resolve(DATA_DIR, fileName)
+  function currentPath(): string {
+    return resolve(dataDir(), fileName)
+  }
 
   async function read(): Promise<T[]> {
+    const path = currentPath()
     if (!existsSync(path)) return []
     const raw = await readFile(path, 'utf8')
     if (!raw.trim()) return []
@@ -27,6 +34,7 @@ export function jsonStore<T>(fileName: string): JsonStore<T> {
   }
 
   async function writeAll(rows: T[]): Promise<void> {
+    const path = currentPath()
     await mkdir(dirname(path), { recursive: true })
     const tmp = `${path}.tmp`
     await writeFile(tmp, JSON.stringify(rows, null, 2), 'utf8')
@@ -48,7 +56,15 @@ export function jsonStore<T>(fileName: string): JsonStore<T> {
     await writeAll(rows)
   }
 
-  return { path, read, writeAll, append, upsert }
+  return {
+    get path(): string {
+      return currentPath()
+    },
+    read,
+    writeAll,
+    append,
+    upsert,
+  }
 }
 
 export const stores = {
