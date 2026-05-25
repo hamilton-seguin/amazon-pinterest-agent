@@ -23,7 +23,8 @@ export function makeDraft(overrides: Partial<PinDraft> = {}): PinDraft {
   return {
     asin: 'B000000001',
     pinTitle: 'Packing Cubes',
-    pinDescription: 'Tidy travel essentials. Affiliate link — I may earn a commission <3',
+    pinDescription:
+      'Tidy travel essentials. Affiliate link — I may earn a commission <3',
     imageUrl: 'https://example.test/img/packing-cubes.jpg',
     affiliateUrl: 'https://www.amazon.fr/dp/B000000001?tag=test-21',
     category: 'travel',
