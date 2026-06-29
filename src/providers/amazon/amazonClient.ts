@@ -15,7 +15,7 @@ class PaApiAmazonClient implements AmazonProvider {
     if (missing.length > 0) {
       throw new Error(
         `Amazon PA-API requires ${missing.join(', ')}. ` +
-          'Set them in .env, or use `npm run daily -- --mock` (fixtures) or `npm run daily -- --manual` (Playwright collector).',
+          'Set them in .env, or use `npm start -- --mock` (fixtures) or `npm start -- --manual` (Playwright collector).',
       )
     }
   }
@@ -25,7 +25,7 @@ class PaApiAmazonClient implements AmazonProvider {
     // `webservices.<marketplace>/paapi5/searchitems` with SearchItems request.
     // Keep payload typed via amazon.types, never log raw secrets.
     throw new Error(
-      'PA-API client not yet implemented. Use `npm run daily -- --mock` or `--manual` until amazonClient.ts is wired up.',
+      'PA-API client not yet implemented. Use `npm start -- --mock` or `npm start -- --manual` until amazonClient.ts is wired up.',
     )
   }
 }
@@ -38,7 +38,7 @@ export function createAmazonClient(cfg: AppConfig): AmazonProvider {
   if (cfg.AMAZON_PROVIDER === 'playwright') {
     logger.info(
       'Using file-backed Amazon provider (reads data/candidates.json). ' +
-        'Run `npm run collect:amazon` first to populate it.',
+        'Run `npm run collect` first to populate it.',
     )
     return new FileBackedAmazonProvider()
   }

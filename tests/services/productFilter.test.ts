@@ -21,7 +21,7 @@ describe('filterCandidates', () => {
     const c = makeCandidate({ asin: 'B000PUB0001' })
     const result = filterCandidates([c], new Set(['B000PUB0001']))
     expect(result.kept).toHaveLength(0)
-    expect(result.rejected[0]?.reason).toBe('already-published')
+    expect(result.rejected[0]?.reason).toBe('already-seen')
   })
 
   it('rejects restricted category keywords in title', () => {

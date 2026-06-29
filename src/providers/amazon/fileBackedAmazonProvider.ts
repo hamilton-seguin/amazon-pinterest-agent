@@ -6,8 +6,8 @@ import type { AmazonProvider, AmazonSearchOptions } from './amazon.types.js'
 /**
  * Reads pre-collected candidates from data/candidates.json.
  *
- * Used in tandem with the Playwright collector: `collect:amazon` populates
- * the file, then `generate:candidates` (with AMAZON_PROVIDER=playwright)
+ * Used in tandem with the Playwright collector: `npm run collect` populates
+ * the file, then `npm run draft -- --manual` (AMAZON_PROVIDER=playwright)
  * consumes it through the normal scoring/copy/review pipeline.
  */
 export class FileBackedAmazonProvider implements AmazonProvider {

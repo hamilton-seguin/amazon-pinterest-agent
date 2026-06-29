@@ -2,7 +2,7 @@ import type { AppConfig } from '../config.js'
 import { createAmazonClient } from '../providers/amazon/amazonClient.js'
 import { generateCopy } from '../services/copyGenerator.js'
 import { filterCandidates } from '../services/productFilter.js'
-import { rankAndKeepTop } from '../services/productScoring.js'
+import { rankAndKeepTop, type Scored } from '../services/productScoring.js'
 import { stores } from '../storage/jsonStore.js'
 import {
   CATEGORIES,
@@ -25,7 +25,7 @@ export async function generateCandidates(cfg: AppConfig): Promise<void> {
     ...drafts.filter((d) => d.status !== 'failed').map((d) => d.asin),
   ])
 
-  const allCandidates: ProductCandidate[] = []
+  const allScored: Scored[] = []
   for (const category of CATEGORIES) {
     const raw = await amazon.search({ category, limit: PER_CATEGORY_FETCH })
     const { kept, rejected } = filterCandidates(raw, seen)
@@ -44,19 +44,21 @@ export async function generateCandidates(cfg: AppConfig): Promise<void> {
       }
     }
     const top = rankAndKeepTop(kept, PER_CATEGORY_KEEP)
-    for (const t of top) allCandidates.push(t.product)
+    for (const t of top) allScored.push(t)
   }
 
-  if (allCandidates.length === 0) {
+  if (allScored.length === 0) {
     logger.warn('No candidates survived filter+scoring.')
     return
   }
 
+  const allCandidates: ProductCandidate[] = allScored.map((s) => s.product)
   await stores.candidates.writeAll(allCandidates)
+
   const newDrafts: PinDraft[] = []
-  for (const product of allCandidates) {
+  for (const scored of allScored) {
+    const { product } = scored
     const copy = await generateCopy(product, cfg)
-    const scored = rankAndKeepTop([product], 1)[0]!
     const draft: PinDraft = {
       asin: product.asin,
       pinTitle: copy.pinTitle,
@@ -71,8 +73,10 @@ export async function generateCandidates(cfg: AppConfig): Promise<void> {
     newDrafts.push(draft)
   }
 
-  const existing = drafts.filter((d) => d.status !== 'drafted')
-  await stores.drafts.writeAll([...existing, ...newDrafts])
+  await stores.drafts.update((rows) => {
+    const existing = rows.filter((d) => d.status !== 'drafted')
+    return [...existing, ...newDrafts]
+  })
 
   logger.info('Drafts generated', {
     totalDrafts: newDrafts.length,

@@ -10,18 +10,17 @@ export default function App() {
   const review = useDraftReview()
   const approved = useApprovedSelection()
 
-  // Refresh approved list whenever the queue's approve count changes
-  // so newly-approved drafts appear in Approved Selection immediately.
+  // Refresh approved list whenever the queue's approve count changes so
+  // newly-approved drafts appear in Approved Selection immediately.
+  // `approved.reload` is stable (useCallback with no deps) so this won't loop.
   useEffect(() => {
     if (review.approvedCount > 0) void approved.reload()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [review.approvedCount])
+  }, [review.approvedCount, approved.reload])
 
   // Refresh approved list when user switches to the approved view.
   useEffect(() => {
     if (view === 'approved') void approved.reload()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [view])
+  }, [view, approved.reload])
 
   const queueRemaining = Math.max(0, review.total - review.index)
 

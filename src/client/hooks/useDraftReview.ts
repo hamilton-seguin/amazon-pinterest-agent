@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type { PinDraft } from '../../types.js'
 import { draftsApi } from '@/lib/apiClient'
 
@@ -35,6 +35,12 @@ export function useDraftReview(): DraftReview {
     approvedCount: 0,
     skippedCount: 0,
   })
+
+  // Guard against keyboard-shortcut spam: while a mutation is in flight for
+  // a given ASIN, ignore further approve/skip on the same one. Without this,
+  // pressing → twice quickly fires two POSTs on `current` before `index`
+  // advances, causing duplicate approves.
+  const inFlightAsin = useRef<string | null>(null)
 
   const load = useCallback(async () => {
     setState((s) => ({ ...s, loading: true, error: null }))
@@ -76,12 +82,16 @@ export function useDraftReview(): DraftReview {
   const approve = useCallback(
     async (updates?: { pinTitle?: string; pinDescription?: string }) => {
       if (!current) return
+      if (inFlightAsin.current === current.asin) return
+      inFlightAsin.current = current.asin
       try {
         await draftsApi.approve(current.asin, updates)
         advance('approve')
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err)
         setState((s) => ({ ...s, error: msg }))
+      } finally {
+        inFlightAsin.current = null
       }
     },
     [current, advance],
@@ -89,12 +99,16 @@ export function useDraftReview(): DraftReview {
 
   const skip = useCallback(async () => {
     if (!current) return
+    if (inFlightAsin.current === current.asin) return
+    inFlightAsin.current = current.asin
     try {
       await draftsApi.skip(current.asin)
       advance('skip')
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
       setState((s) => ({ ...s, error: msg }))
+    } finally {
+      inFlightAsin.current = null
     }
   }, [current, advance])
 

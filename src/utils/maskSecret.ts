@@ -1,8 +1,12 @@
 const SECRET_KEY_PATTERN = /(token|secret|key|authorization|password|bearer)/i
+const ALREADY_MASKED_PATTERN = /^(?:\*{2,}|\(empty\)$)/
 
 export function maskSecret(value: string | undefined | null): string {
   if (!value) return '(empty)'
   const trimmed = value.trim()
+  // Idempotent: passing a previously-masked value through twice would slice
+  // off the last 4 chars of "****abcd" and produce garbage like "**abcd".
+  if (ALREADY_MASKED_PATTERN.test(trimmed)) return trimmed
   if (trimmed.length <= 4) return '****'
   return `****${trimmed.slice(-4)}`
 }

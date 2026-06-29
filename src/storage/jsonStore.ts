@@ -8,20 +8,37 @@ function dataDir(): string {
   return resolve(process.cwd(), 'data')
 }
 
+/**
+ * Serializes async work so concurrent callers (UI bridge + CLI + StrictMode
+ * double-invocations) don't interleave read-modify-write on the same file.
+ */
+function createMutex() {
+  let tail: Promise<unknown> = Promise.resolve()
+  return function lock<T>(fn: () => Promise<T>): Promise<T> {
+    const run = tail.then(fn, fn)
+    tail = run.catch(() => undefined)
+    return run
+  }
+}
+
 export interface JsonStore<T> {
   readonly path: string
   read(): Promise<T[]>
   writeAll(rows: T[]): Promise<void>
   append(row: T): Promise<void>
   upsert(row: T, keyOf: (r: T) => string): Promise<void>
+  /** Atomic read-modify-write under the store's mutex. */
+  update(mutate: (rows: T[]) => T[] | Promise<T[]>): Promise<T[]>
 }
 
 export function jsonStore<T>(fileName: string): JsonStore<T> {
+  const lock = createMutex()
+
   function currentPath(): string {
     return resolve(dataDir(), fileName)
   }
 
-  async function read(): Promise<T[]> {
+  async function readUnlocked(): Promise<T[]> {
     const path = currentPath()
     if (!existsSync(path)) return []
     const raw = await readFile(path, 'utf8')
@@ -33,7 +50,7 @@ export function jsonStore<T>(fileName: string): JsonStore<T> {
     return parsed as T[]
   }
 
-  async function writeAll(rows: T[]): Promise<void> {
+  async function writeAllUnlocked(rows: T[]): Promise<void> {
     const path = currentPath()
     await mkdir(dirname(path), { recursive: true })
     const tmp = `${path}.tmp`
@@ -41,19 +58,40 @@ export function jsonStore<T>(fileName: string): JsonStore<T> {
     await rename(tmp, path)
   }
 
-  async function append(row: T): Promise<void> {
-    const rows = await read()
-    rows.push(row)
-    await writeAll(rows)
+  function read(): Promise<T[]> {
+    return lock(readUnlocked)
   }
 
-  async function upsert(row: T, keyOf: (r: T) => string): Promise<void> {
-    const rows = await read()
-    const k = keyOf(row)
-    const idx = rows.findIndex((r) => keyOf(r) === k)
-    if (idx >= 0) rows[idx] = row
-    else rows.push(row)
-    await writeAll(rows)
+  function writeAll(rows: T[]): Promise<void> {
+    return lock(() => writeAllUnlocked(rows))
+  }
+
+  function append(row: T): Promise<void> {
+    return lock(async () => {
+      const rows = await readUnlocked()
+      rows.push(row)
+      await writeAllUnlocked(rows)
+    })
+  }
+
+  function upsert(row: T, keyOf: (r: T) => string): Promise<void> {
+    return lock(async () => {
+      const rows = await readUnlocked()
+      const k = keyOf(row)
+      const idx = rows.findIndex((r) => keyOf(r) === k)
+      if (idx >= 0) rows[idx] = row
+      else rows.push(row)
+      await writeAllUnlocked(rows)
+    })
+  }
+
+  function update(mutate: (rows: T[]) => T[] | Promise<T[]>): Promise<T[]> {
+    return lock(async () => {
+      const rows = await readUnlocked()
+      const next = await mutate(rows)
+      await writeAllUnlocked(next)
+      return next
+    })
   }
 
   return {
@@ -64,6 +102,7 @@ export function jsonStore<T>(fileName: string): JsonStore<T> {
     writeAll,
     append,
     upsert,
+    update,
   }
 }
 

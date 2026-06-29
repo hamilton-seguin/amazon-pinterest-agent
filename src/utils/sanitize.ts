@@ -3,7 +3,6 @@ export const BANNED_PHRASES: ReadonlyArray<string> = [
   'miracle',
   'cure',
   'cures',
-  'official',
   '100% effective',
   'doctor recommended',
   'fda approved',
@@ -50,10 +49,15 @@ export function sanitizeCopy(text: string): SanitizeResult {
   return { ok: flagged.length === 0, cleaned, flagged }
 }
 
+/**
+ * Match each restricted term on a word boundary, normalizing hyphens and
+ * underscores to spaces so "adult-toy" still matches "adult toy".
+ */
 export function containsRestrictedCategory(text: string): string | null {
-  const lower = text.toLowerCase()
+  const normalized = text.toLowerCase().replace(/[-_]+/g, ' ')
   for (const term of RESTRICTED_CATEGORIES) {
-    if (lower.includes(term)) return term
+    const re = new RegExp(`\\b${escapeRe(term)}\\b`, 'i')
+    if (re.test(normalized)) return term
   }
   return null
 }
@@ -62,6 +66,6 @@ export const AFFILIATE_DISCLOSURE =
   'Affiliate link — I may earn a commission <3'
 
 export function ensureDisclosure(description: string): string {
-  if (description.toLowerCase().includes('affiliate link')) return description
+  if (description.includes(AFFILIATE_DISCLOSURE)) return description
   return `${description.trim()}\n\n${AFFILIATE_DISCLOSURE}`
 }

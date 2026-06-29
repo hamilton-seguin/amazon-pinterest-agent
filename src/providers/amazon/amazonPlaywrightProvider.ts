@@ -186,6 +186,65 @@ async function scrapeOneSource(
         return Number.parseInt(m[1], 10)
       }
 
+      function pickLargestSrcset(srcset: string): string | undefined {
+        // "url1 1x, url2 2x" or "url1 200w, url2 400w" → highest descriptor wins.
+        const parts = srcset
+          .split(',')
+          .map((p) => p.trim())
+          .filter(Boolean)
+        let best: { url: string; weight: number } | undefined
+        for (const p of parts) {
+          const [url, desc] = p.split(/\s+/, 2)
+          if (!url) continue
+          const n = desc ? Number.parseFloat(desc) : 1
+          const weight = Number.isFinite(n) ? n : 1
+          if (!best || weight > best.weight) best = { url, weight }
+        }
+        return best?.url
+      }
+
+      // Types intentionally `any` — this callback is stringified and run in
+      // the browser page context, where DOM types exist but Node's tsconfig
+      // doesn't see them.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      function pickImage(imgEl: any): string {
+        if (!imgEl) return ''
+        const srcset = imgEl.getAttribute('srcset')
+        const fromSrcset = srcset ? pickLargestSrcset(srcset) : undefined
+        const dataSrc = imgEl.getAttribute('data-src')
+        const src = imgEl.getAttribute('src')
+        return fromSrcset || dataSrc || src || ''
+      }
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      function extractReviewCount(card: any): number | undefined {
+        // Walk a list of selectors from most-specific to least-specific.
+        // The fragile bit is that the rating block ("4,5 sur 5") sits next
+        // to the review-count number, and a loose selector will parse "4"
+        // out of the rating instead of the actual count. We mitigate by
+        // requiring the parsed value to be plausible (>= 10): bestseller
+        // entries always have at least dozens of reviews, and rating
+        // integers (1..5) get rejected.
+        const candidateTexts: Array<string | null | undefined> = [
+          card.querySelector('a[href*="#customerReviews"] .a-size-small')
+            ?.textContent,
+          card.querySelector('a[href*="#customerReviews"] .s-link-style')
+            ?.textContent,
+          card
+            .querySelector('a[href*="#customerReviews"]')
+            ?.getAttribute('aria-label'),
+          card.querySelector('a[href*="#customerReviews"]')?.textContent,
+          card.querySelector('.a-icon-row .a-size-small')?.textContent,
+          card.querySelector('.a-size-small')?.textContent,
+        ]
+        for (const text of candidateTexts) {
+          if (!text) continue
+          const n = parseInteger(text)
+          if (n !== undefined && n >= 10) return n
+        }
+        return undefined
+      }
+
       for (const card of Array.from(cards)) {
         if (items.length >= limitArg) break
 
@@ -206,7 +265,7 @@ async function scrapeOneSource(
         if (!title) continue
 
         const imgEl = card.querySelector('img')
-        const imageUrl = imgEl?.getAttribute('src') ?? ''
+        const imageUrl = pickImage(imgEl)
         if (!imageUrl) continue
 
         const productUrl = href.startsWith('http')
@@ -226,12 +285,7 @@ async function scrapeOneSource(
         const ratingAlt = card.querySelector('.a-icon-alt')?.textContent ?? ''
         const rating = parseRating(ratingAlt)
 
-        // Review count is rendered next to the rating icon.
-        const reviewText =
-          card.querySelector('.a-size-small')?.textContent ??
-          card.querySelector('a[href*="#customerReviews"]')?.textContent ??
-          ''
-        const reviewCount = parseInteger(reviewText)
+        const reviewCount = extractReviewCount(card)
 
         const raw: RawCard = { asin, title, imageUrl, productUrl }
         if (price !== undefined) raw.price = price

@@ -92,10 +92,33 @@ function countHits(haystack: string, needles: string[]): number {
   return needles.reduce((n, w) => (lower.includes(w) ? n + 1 : n), 0)
 }
 
+/**
+ * Parses prices across marketplaces. Handles:
+ *   "$29.99", "29.99 €", "29,99 €", "1 299,99 €", "1,299.99 USD", "€1.299,99"
+ * Strategy: strip thin/regular/non-breaking spaces, pick the longest digit run
+ * including grouping separators, then resolve decimal vs grouping by the
+ * position of the last `.` or `,`.
+ */
 function parsePrice(price: string | undefined): number | null {
   if (!price) return null
-  const m = price.match(/[\d]+(?:\.\d+)?/)
-  return m ? Number.parseFloat(m[0]) : null
+  const stripped = price.replace(/[\s  ]/g, '')
+  const m = stripped.match(/[\d.,]+/)
+  if (!m) return null
+  const token = m[0]
+  const lastDot = token.lastIndexOf('.')
+  const lastComma = token.lastIndexOf(',')
+  let normalized: string
+  if (lastDot === -1 && lastComma === -1) {
+    normalized = token
+  } else if (lastComma > lastDot) {
+    // comma is the decimal separator: 1.299,99 → 1299.99
+    normalized = token.replace(/\./g, '').replace(',', '.')
+  } else {
+    // dot is the decimal separator: 1,299.99 → 1299.99
+    normalized = token.replace(/,/g, '')
+  }
+  const n = Number.parseFloat(normalized)
+  return Number.isFinite(n) ? n : null
 }
 
 export interface Scored {

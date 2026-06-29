@@ -1,12 +1,7 @@
 import * as readline from 'node:readline/promises'
 import { stdin as input, stdout as output } from 'node:process'
 import type { PinDraft } from '../types.js'
-import {
-  approveDraft,
-  getDrafts,
-  skipDraft,
-  updateDraft,
-} from '../api/drafts.js'
+import { approveDraft, getDrafts, skipDraft } from '../api/drafts.js'
 import { logger } from '../utils/logger.js'
 
 type Decision = 'a' | 's' | 'e' | 'q'
@@ -60,7 +55,7 @@ export async function runReviewQueue(): Promise<{
 }> {
   const pending = await getDrafts('drafted')
   if (pending.length === 0) {
-    logger.info('No drafts pending review. Run generate:candidates first.')
+    logger.info('No drafts pending review. Run `npm run draft` first.')
     return { approved: [], skipped: [], remaining: [] }
   }
 
@@ -93,9 +88,13 @@ export async function runReviewQueue(): Promise<{
         continue
       }
       const updates = await promptEdit(current, rl)
-      if (Object.keys(updates).length > 0)
-        await updateDraft(current.asin, updates)
-      approved.push(await approveDraft(current.asin))
+      // approveDraft accepts updates so we do a single locked mutation.
+      approved.push(
+        await approveDraft(
+          current.asin,
+          Object.keys(updates).length > 0 ? updates : undefined,
+        ),
+      )
     }
   } finally {
     rl.close()

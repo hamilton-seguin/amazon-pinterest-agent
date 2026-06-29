@@ -32,11 +32,10 @@ function deterministicCopy(
   category: Category,
 ): CopyOutput {
   const cleanTitle = product.title.replace(/\s+[—|]\s+.*$/, '').trim()
-  const shortTitle = cleanTitle.slice(0, 80)
   const audience = AUDIENCE[category]
   const useCase = USE_CASE[category]
 
-  const pinTitle = shortTitle.length > 0 ? shortTitle : cleanTitle.slice(0, 80)
+  const pinTitle = clampTitle(cleanTitle, 80)
   const pinDescription = [
     `${cleanTitle} — a simple find for ${useCase}.`,
     `Made for ${audience}.`,
@@ -47,12 +46,25 @@ function deterministicCopy(
   return { pinTitle, pinDescription }
 }
 
+/**
+ * Hard-cut at `max` but back off to the previous word boundary if we'd split
+ * a word, appending "…" so truncation is visible. Empty input → empty out.
+ */
+function clampTitle(text: string, max: number): string {
+  const trimmed = text.trim()
+  if (trimmed.length <= max) return trimmed
+  const slice = trimmed.slice(0, max)
+  const lastSpace = slice.lastIndexOf(' ')
+  const cut = lastSpace > max * 0.6 ? slice.slice(0, lastSpace) : slice
+  return `${cut.trimEnd()}…`
+}
+
 function chooseProvider(cfg: AppConfig): CopyProvider | null {
   if (cfg.COPY_PROVIDER === 'anthropic' && cfg.ANTHROPIC_API_KEY) {
-    return new AnthropicCopyProvider(cfg.ANTHROPIC_API_KEY)
+    return new AnthropicCopyProvider(cfg.ANTHROPIC_API_KEY, cfg.ANTHROPIC_MODEL)
   }
   if (cfg.COPY_PROVIDER === 'openai' && cfg.OPENAI_API_KEY) {
-    return new OpenAiCopyProvider(cfg.OPENAI_API_KEY)
+    return new OpenAiCopyProvider(cfg.OPENAI_API_KEY, cfg.OPENAI_MODEL)
   }
   return null
 }
@@ -86,7 +98,7 @@ export async function generateCopy(
     })
   }
   return {
-    pinTitle: titleSan.cleaned.slice(0, 100),
+    pinTitle: clampTitle(titleSan.cleaned, 100),
     pinDescription: ensureDisclosure(descSan.cleaned).slice(0, 500),
   }
 }

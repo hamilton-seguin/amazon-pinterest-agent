@@ -35,11 +35,14 @@ export function EditDraftDialog({ draft, open, onOpenChange, onSave }: Props) {
 
   async function handleSave() {
     if (!draft) return
+    const nextTitle = title.trim()
+    const nextDesc = description.trim()
     const updates: { pinTitle?: string; pinDescription?: string } = {}
-    if (title.trim() && title.trim() !== draft.pinTitle)
-      updates.pinTitle = title.trim()
-    if (description.trim() && description.trim() !== draft.pinDescription) {
-      updates.pinDescription = description.trim()
+    if (nextTitle && nextTitle !== draft.pinTitle.trim()) {
+      updates.pinTitle = nextTitle
+    }
+    if (nextDesc && nextDesc !== draft.pinDescription.trim()) {
+      updates.pinDescription = nextDesc
     }
     if (Object.keys(updates).length > 0) await onSave(updates)
     onOpenChange(false)

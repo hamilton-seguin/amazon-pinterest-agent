@@ -74,7 +74,13 @@ export async function collectAmazon(cfg: AppConfig): Promise<void> {
     return
   }
 
-  const merged: ProductCandidate[] = [...existingCandidates, ...collected]
+  // Defense-in-depth dedupe at the merge boundary. The collector already
+  // skips ASINs in `alreadySeenAsins`, but keep the invariant explicit so a
+  // future refactor of the collector can't introduce duplicates.
+  const byAsin = new Map<string, ProductCandidate>()
+  for (const c of existingCandidates) byAsin.set(c.asin, c)
+  for (const c of collected) byAsin.set(c.asin, c)
+  const merged: ProductCandidate[] = [...byAsin.values()]
   logger.info('Collection summary', {
     addedThisRun: collected.length,
     target,

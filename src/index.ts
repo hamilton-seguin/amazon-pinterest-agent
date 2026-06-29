@@ -126,6 +126,13 @@ async function runFetchAndDraft(
 
 function launchReviewUi(): Promise<void> {
   return new Promise<void>((resolve, reject) => {
+    let userInterrupted = false
+    const onInterrupt = () => {
+      userInterrupted = true
+    }
+    process.once('SIGINT', onInterrupt)
+    process.once('SIGTERM', onInterrupt)
+
     const child = spawn(
       'npx',
       [
@@ -140,9 +147,15 @@ function launchReviewUi(): Promise<void> {
       ],
       { stdio: 'inherit', shell: false },
     )
-    child.on('exit', (code) => {
-      if (code === 0 || code === null) resolve()
-      else reject(new Error(`Review UI exited with code ${code}`))
+    child.on('exit', (code, signal) => {
+      process.off('SIGINT', onInterrupt)
+      process.off('SIGTERM', onInterrupt)
+      if (code === 0) return resolve()
+      // null code means the child was killed by a signal. Treat as success
+      // only when the user explicitly interrupted (Ctrl-C / SIGTERM).
+      if (code === null && userInterrupted) return resolve()
+      const reason = signal ?? `code ${code}`
+      reject(new Error(`Review UI exited (${reason})`))
     })
     child.on('error', reject)
   })
@@ -211,7 +224,7 @@ async function main(): Promise<void> {
     amazonProvider: cfg.AMAZON_PROVIDER,
     copyProvider: cfg.COPY_PROVIDER,
     associateTag: maskSecret(cfg.AMAZON_ASSOCIATE_TAG),
-    pinterestToken: cfg.PINTEREST_ACCESS_TOKEN ?? '',
+    pinterestToken: maskSecret(cfg.PINTEREST_ACCESS_TOKEN),
   })
 
   switch (command) {

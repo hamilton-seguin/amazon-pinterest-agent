@@ -54,27 +54,27 @@ describe('draftRoutes (local API bridge)', () => {
 
   it('GET /api/drafts returns all drafts', async () => {
     await stores.drafts.writeAll([
-      makeDraft({ asin: 'B000HTT0001', status: 'drafted' }),
-      makeDraft({ asin: 'B000HTT0002', status: 'approved' }),
+      makeDraft({ asin: 'B000HTT001', status: 'drafted' }),
+      makeDraft({ asin: 'B000HTT002', status: 'approved' }),
     ])
     const res = await fetch(`${s.base}/api/drafts`)
     expect(res.status).toBe(200)
     const body = (await res.json()) as Array<{ asin: string }>
     expect(body.map((d) => d.asin).sort()).toEqual([
-      'B000HTT0001',
-      'B000HTT0002',
+      'B000HTT001',
+      'B000HTT002',
     ])
   })
 
   it('GET /api/drafts?status=approved filters by status', async () => {
     await stores.drafts.writeAll([
-      makeDraft({ asin: 'B000HTT0010', status: 'drafted' }),
-      makeDraft({ asin: 'B000HTT0011', status: 'approved' }),
+      makeDraft({ asin: 'B000HTT010', status: 'drafted' }),
+      makeDraft({ asin: 'B000HTT011', status: 'approved' }),
     ])
     const res = await fetch(`${s.base}/api/drafts?status=approved`)
     const body = (await res.json()) as Array<{ asin: string; status: string }>
     expect(body).toHaveLength(1)
-    expect(body[0]?.asin).toBe('B000HTT0011')
+    expect(body[0]?.asin).toBe('B000HTT011')
   })
 
   it('GET /api/drafts?status=bogus returns 400 with clear error', async () => {
@@ -86,9 +86,9 @@ describe('draftRoutes (local API bridge)', () => {
 
   it('POST /api/drafts/:asin/approve approves the draft', async () => {
     await stores.drafts.writeAll([
-      makeDraft({ asin: 'B000HTT0020', status: 'drafted' }),
+      makeDraft({ asin: 'B000HTT020', status: 'drafted' }),
     ])
-    const res = await fetch(`${s.base}/api/drafts/B000HTT0020/approve`, {
+    const res = await fetch(`${s.base}/api/drafts/B000HTT020/approve`, {
       method: 'POST',
     })
     expect(res.status).toBe(200)
@@ -98,9 +98,9 @@ describe('draftRoutes (local API bridge)', () => {
 
   it('POST /api/drafts/:asin/skip skips the draft', async () => {
     await stores.drafts.writeAll([
-      makeDraft({ asin: 'B000HTT0030', status: 'drafted' }),
+      makeDraft({ asin: 'B000HTT030', status: 'drafted' }),
     ])
-    const res = await fetch(`${s.base}/api/drafts/B000HTT0030/skip`, {
+    const res = await fetch(`${s.base}/api/drafts/B000HTT030/skip`, {
       method: 'POST',
     })
     expect(res.status).toBe(200)
@@ -111,13 +111,13 @@ describe('draftRoutes (local API bridge)', () => {
   it('PATCH /api/drafts/:asin updates title and description', async () => {
     await stores.drafts.writeAll([
       makeDraft({
-        asin: 'B000HTT0040',
+        asin: 'B000HTT040',
         status: 'drafted',
         pinTitle: 'Old',
         pinDescription: 'Old desc',
       }),
     ])
-    const res = await fetch(`${s.base}/api/drafts/B000HTT0040`, {
+    const res = await fetch(`${s.base}/api/drafts/B000HTT040`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -135,7 +135,7 @@ describe('draftRoutes (local API bridge)', () => {
   })
 
   it('returns error status for unknown ASIN on approve', async () => {
-    const res = await fetch(`${s.base}/api/drafts/B000MISS001/approve`, {
+    const res = await fetch(`${s.base}/api/drafts/B000MISS01/approve`, {
       method: 'POST',
     })
     expect([400, 404]).toContain(res.status)

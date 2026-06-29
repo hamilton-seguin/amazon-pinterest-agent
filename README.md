@@ -42,7 +42,9 @@ Edit `.env`. The mock provider only needs `AMAZON_ASSOCIATE_TAG` to be set.
 | `PINTEREST_ACCESS_TOKEN`         | only when live publish | OAuth access token (never logged in full)       |
 | `PINTEREST_BOARD_ID`             | only when live publish | Target board                                    |
 | `ANTHROPIC_API_KEY`              | optional               | If `COPY_PROVIDER=anthropic`                    |
+| `ANTHROPIC_MODEL`                | optional               | Override Anthropic model id (default pinned)    |
 | `OPENAI_API_KEY`                 | optional               | If `COPY_PROVIDER=openai`                       |
+| `OPENAI_MODEL`                   | optional               | Override OpenAI model id (default `gpt-4o-mini`)|
 | `AMAZON_PROVIDER`                | optional               | `mock` (default), `paapi`, or `playwright`      |
 | `PLAYWRIGHT_HEADLESS`            | optional               | `false` (default) — set `true` once stable      |
 | `AMAZON_BESTSELLER_MAX_PRODUCTS` | optional               | Total cap per `collect` run (default 10)        |
@@ -50,6 +52,8 @@ Edit `.env`. The mock provider only needs `AMAZON_ASSOCIATE_TAG` to be set.
 | `DRY_RUN`                        | optional               | `true` (default) blocks live Pinterest calls    |
 | `LOG_LEVEL`                      | optional               | `debug` \| `info` \| `warn` \| `error`          |
 | `LOCAL_API_PORT`                 | optional               | Port for the local API bridge (default 5174)    |
+| `LOCAL_API_HOST`                 | optional               | Bind host for the bridge (default `127.0.0.1`)  |
+| `LOCAL_API_ALLOWED_ORIGINS`      | optional               | Comma-separated CORS allow-list. Default: Vite dev origins. |
 | `APP_DATA_DIR`                   | optional               | Override JSON storage dir (used by tests)       |
 
 Secrets must **never** be committed. `.env` is gitignored.
@@ -203,7 +207,7 @@ Shortcuts:
 Architecture:
 
 - `src/api/drafts.ts` is the single source of business logic (read/update/approve/skip).
-- `src/server/localApiServer.ts` is a minimal Node `http` bridge — it exists only because the browser cannot touch the local filesystem. Routes: `GET /api/drafts`, `PATCH /api/drafts/:asin`, `POST /api/drafts/:asin/approve`, `POST /api/drafts/:asin/skip`.
+- `src/server/localApiServer.ts` is a minimal Node `http` bridge — it exists only because the browser cannot touch the local filesystem. Routes: `GET /api/drafts`, `PATCH /api/drafts/:asin`, `POST /api/drafts/:asin/approve`, `POST /api/drafts/:asin/skip`. Bound to `127.0.0.1` and gates browser callers via a CORS allow-list (`http://localhost:5173` + `http://127.0.0.1:5173` by default) so a malicious webpage open in the same browser cannot CSRF the bridge. Override host/origins with `LOCAL_API_HOST` / `LOCAL_API_ALLOWED_ORIGINS`.
 - `src/client/lib/apiClient.ts` is the only thing the React app uses to talk to that bridge.
 - Vite dev server proxies `/api` → `http://localhost:5174`.
 

@@ -25,10 +25,16 @@ const baseSchema = z.object({
   PINTEREST_BOARD_ID: z.string().optional(),
 
   ANTHROPIC_API_KEY: z.string().optional(),
+  ANTHROPIC_MODEL: z.string().optional(),
   OPENAI_API_KEY: z.string().optional(),
+  OPENAI_MODEL: z.string().optional(),
 
   PLAYWRIGHT_HEADLESS: boolish.default('false'),
-  AMAZON_BESTSELLER_MAX_PRODUCTS: z.coerce.number().int().positive().default(9),
+  AMAZON_BESTSELLER_MAX_PRODUCTS: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(10),
   AMAZON_BESTSELLER_MAX_PER_CATEGORY: z.coerce
     .number()
     .int()

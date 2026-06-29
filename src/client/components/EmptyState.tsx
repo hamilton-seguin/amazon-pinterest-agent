@@ -56,11 +56,11 @@ export function EmptyState({ approved, skipped, total, onReload }: Props) {
             <p className="text-muted-foreground">
               If <code className="font-mono">data/candidates.json</code> has new
               items collected by{' '}
-              <code className="font-mono">npm run collect:amazon</code> (or the
-              daily pipeline), convert them into drafts with:
+              <code className="font-mono">npm run collect</code> (or the daily
+              pipeline), convert them into drafts with:
             </p>
             <pre className="font-mono text-[11px] bg-background/60 rounded px-2 py-1.5 overflow-x-auto">
-              npm run generate:candidates
+              npm run draft -- --manual
             </pre>
             <p className="text-muted-foreground">
               Then click <span className="font-medium">Reload queue</span>.

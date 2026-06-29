@@ -22,18 +22,24 @@ export async function getDraftByAsin(
   return rows.find((d) => d.asin === asin)
 }
 
+/**
+ * Atomic read-modify-write under the drafts store mutex. Concurrent calls
+ * are serialized, so two approves on the same ASIN can't clobber each other.
+ */
 async function mutateDraft(
   asin: string,
   mutate: (draft: PinDraft) => PinDraft,
 ): Promise<PinDraft> {
-  const rows = await stores.drafts.read()
-  const idx = rows.findIndex((d) => d.asin === asin)
-  if (idx < 0) throw new Error(`Draft not found: ${asin}`)
-  const current = rows[idx]!
-  const next = mutate(current)
-  rows[idx] = next
-  await stores.drafts.writeAll(rows)
-  return next
+  let next: PinDraft | undefined
+  await stores.drafts.update((rows) => {
+    const idx = rows.findIndex((d) => d.asin === asin)
+    if (idx < 0) throw new Error(`Draft not found: ${asin}`)
+    next = mutate(rows[idx]!)
+    const out = [...rows]
+    out[idx] = next
+    return out
+  })
+  return next!
 }
 
 export async function updateDraft(
@@ -70,10 +76,11 @@ export async function approveDraft(
     return { ...current, status: 'approved' }
   })
 
-  const existing = await stores.approved.read()
-  const byAsin = new Map(existing.map((d) => [d.asin, d]))
-  byAsin.set(next.asin, next)
-  await stores.approved.writeAll([...byAsin.values()])
+  await stores.approved.update((existing) => {
+    const byAsin = new Map(existing.map((d) => [d.asin, d]))
+    byAsin.set(next.asin, next)
+    return [...byAsin.values()]
+  })
   return next
 }
 

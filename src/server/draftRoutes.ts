@@ -34,10 +34,18 @@ function json(res: ServerResponse, status: number, body: unknown): void {
   res.end(payload)
 }
 
+const MAX_BODY_BYTES = 64 * 1024
+
 async function readJsonBody(req: IncomingMessage): Promise<unknown> {
   const chunks: Buffer[] = []
+  let total = 0
   for await (const chunk of req) {
-    chunks.push(chunk as Buffer)
+    const buf = chunk as Buffer
+    total += buf.length
+    if (total > MAX_BODY_BYTES) {
+      throw new Error(`Request body too large (>${MAX_BODY_BYTES} bytes)`)
+    }
+    chunks.push(buf)
   }
   if (chunks.length === 0) return undefined
   const raw = Buffer.concat(chunks).toString('utf8').trim()
@@ -79,7 +87,7 @@ const routes: Route[] = [
   },
   {
     method: 'PATCH',
-    pattern: /^\/api\/drafts\/([A-Za-z0-9]+)\/?$/,
+    pattern: /^\/api\/drafts\/([A-Z0-9]{10})\/?$/,
     paramNames: ['asin'],
     handler: async (req, res, { asin }) => {
       const body = (await readJsonBody(req)) as
@@ -97,7 +105,7 @@ const routes: Route[] = [
   },
   {
     method: 'POST',
-    pattern: /^\/api\/drafts\/([A-Za-z0-9]+)\/approve\/?$/,
+    pattern: /^\/api\/drafts\/([A-Z0-9]{10})\/approve\/?$/,
     paramNames: ['asin'],
     handler: async (req, res, { asin }) => {
       const body = (await readJsonBody(req)) as
@@ -118,7 +126,7 @@ const routes: Route[] = [
   },
   {
     method: 'POST',
-    pattern: /^\/api\/drafts\/([A-Za-z0-9]+)\/skip\/?$/,
+    pattern: /^\/api\/drafts\/([A-Z0-9]{10})\/skip\/?$/,
     paramNames: ['asin'],
     handler: async (_req, res, { asin }) => {
       const next = await skipDraft(asin!)
@@ -146,7 +154,11 @@ export async function handleDraftRoute(
       await route.handler(req, res, params)
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
-      const status = /not found/i.test(msg) ? 404 : 400
+      const status = /not found/i.test(msg)
+        ? 404
+        : /too large/i.test(msg)
+          ? 413
+          : 400
       json(res, status, { error: msg })
     }
     return true

@@ -1,7 +1,7 @@
 import type { ProductCandidate } from '../types.js'
 import { containsRestrictedCategory } from '../utils/sanitize.js'
 
-const SPAM_TITLE_RE = /[!?]{3,}|[A-Z]{8,}|🔥{2,}/
+const SPAM_TITLE_RE = /[!?]{3,}|\b[A-Z]{8,}\b|🔥{2,}/
 const MIN_REVIEWS = 50
 const MIN_RATING = 3.8
 
@@ -12,13 +12,13 @@ export interface FilterResult {
 
 export function filterCandidates(
   candidates: ProductCandidate[],
-  publishedAsins: ReadonlySet<string>,
+  seenAsins: ReadonlySet<string>,
 ): FilterResult {
   const kept: ProductCandidate[] = []
   const rejected: FilterResult['rejected'] = []
 
   for (const p of candidates) {
-    const reason = rejectReason(p, publishedAsins)
+    const reason = rejectReason(p, seenAsins)
     if (reason) rejected.push({ product: p, reason })
     else kept.push(p)
   }
@@ -27,9 +27,11 @@ export function filterCandidates(
 
 function rejectReason(
   p: ProductCandidate,
-  publishedAsins: ReadonlySet<string>,
+  seenAsins: ReadonlySet<string>,
 ): string | null {
-  if (publishedAsins.has(p.asin)) return 'already-published'
+  // Caller passes the union of (published ∪ non-failed drafts), so this
+  // label covers both "already shipped" and "already drafted this cycle".
+  if (seenAsins.has(p.asin)) return 'already-seen'
   if (!p.imageUrl?.trim()) return 'missing-image'
   if (!p.title?.trim()) return 'missing-title'
   if (SPAM_TITLE_RE.test(p.title)) return 'spammy-title'
